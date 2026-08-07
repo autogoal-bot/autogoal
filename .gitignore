@@ -1,0 +1,16 @@
+﻿# Entorno virtual de Python
+venv/
+# Variables de entorno con secretos
+.env
+# Cache de Python
+__pycache__/
+*.pyc
+# Archivos del editor
+.vscode/
+# Imagenes generadas (se crean al vuelo, no versionar)
+imagenes_generadas/
+# Registro de publicados (estado local)
+publicados.json
+# Credenciales locales
+credenciales_autogoal.txt
+# Fuentes descargadas (se subiran aparte si hace falta)
