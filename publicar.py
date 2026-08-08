@@ -105,6 +105,44 @@ def publicar_en_instagram(ruta_imagen, texto):
     print(f"\n✅ Publicacion completa. Post ID: {post_id}")
     return post_id
 
+def crear_contenedor_story(url_imagen):
+    """
+    Paso 2 para Stories: crear el contenedor con media_type="STORIES".
+    Diferencias con el feed:
+    - media_type="STORIES" es obligatorio
+    - Sin caption: Instagram lo ignora en las Stories
+    """
+    print(f"[2/3] Creando contenedor STORY en Instagram...")
+
+    endpoint = f"{INSTAGRAM_API_BASE}/{INSTAGRAM_ACCOUNT_ID}/media"
+    payload = {
+        "image_url": url_imagen,
+        "media_type": "STORIES",
+        "access_token": PAGE_ACCESS_TOKEN,
+    }
+
+    respuesta = requests.post(endpoint, data=payload, timeout=30)
+
+    if respuesta.status_code != 200:
+        raise Exception(f"Instagram fallo creando contenedor STORY: {respuesta.text}")
+
+    contenedor_id = respuesta.json()["id"]
+    print(f"      Contenedor STORY creado. ID: {contenedor_id}")
+    return contenedor_id
+
+
+def publicar_story(ruta_imagen):
+    """
+    Publica una imagen vertical (1080x1920 JPEG) como Story.
+    Reutiliza la subida a ImgBB y la publicacion del feed.
+    Las Stories NO llevan caption.
+    Devuelve el ID de la Story publicada.
+    """
+    url_imagen = subir_imagen_a_imgbb(ruta_imagen)
+    contenedor_id = crear_contenedor_story(url_imagen)
+    story_id = publicar_contenedor(contenedor_id)
+    print(f"\n✅ Story publicada. Story ID: {story_id}")
+    return story_id
 
 # --- Bloque de prueba ---
 # Este bloque solo se ejecuta si corremos publicar.py directamente,
