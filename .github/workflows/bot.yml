@@ -7,12 +7,18 @@ on:
     - cron: "*/15 11-23 * * *"
   workflow_dispatch:  # Permite ejecutar manualmente desde GitHub
 
+# Permiso para que el workflow pueda escribir (commit/push) en el repo
+permissions:
+  contents: write
+
 jobs:
   publicar-resultados:
     runs-on: ubuntu-latest
     steps:
       - name: Descargar el codigo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Configurar Python
         uses: actions/setup-python@v5
@@ -29,20 +35,18 @@ jobs:
           echo "INSTAGRAM_ACCOUNT_ID=${{ secrets.INSTAGRAM_ACCOUNT_ID }}" >> .env
           echo "IMGBB_API_KEY=${{ secrets.IMGBB_API_KEY }}" >> .env
 
-      - name: Restaurar registro de publicados
-        uses: actions/cache@v4
-        with:
-          path: publicados.json
-          key: publicados-${{ github.run_id }}
-          restore-keys: |
-            publicados-
-
       - name: Ejecutar el bot
         run: python main.py
 
-      - name: Guardar registro de publicados
-        uses: actions/cache/save@v4
+      - name: Guardar publicados.json en el repo
         if: always()
-        with:
-          path: publicados.json
-          key: publicados-${{ github.run_id }}
+        run: |
+          git config user.name "autogoal-bot"
+          git config user.email "bot@autogoal.es"
+          git add -f publicados.json
+          if git diff --staged --quiet; then
+            echo "Sin cambios en publicados.json, nada que commitear."
+          else
+            git commit -m "Actualizar registro de publicados [skip ci]"
+            git push
+          fi
