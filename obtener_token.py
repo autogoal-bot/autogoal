@@ -1,22 +1,27 @@
 ﻿"""
-Obtiene el Page Token PERMANENTE de forma automatica y lo verifica.
-Pide los datos por consola para no dejarlos en el codigo.
+Obtiene el Page Token PERMANENTE, lo VERIFICA y lo ESCRIBE en .env
+automaticamente. Elimina el copy-paste manual (causa de los tokens malos).
+Solo escribe si el token es type=PAGE y expires_at=0.
 """
 
+import re
+import sys
 import requests
+from pathlib import Path
 
 APP_ID = "2168561603717392"
 PAGE_ID = "1249004994962920"
+ARCHIVO_ENV = Path(".env")
 
 print("=" * 60)
-print("GENERADOR DE PAGE TOKEN PERMANENTE - AUTOGOAL")
+print("GENERADOR DE PAGE TOKEN PERMANENTE - AUTOGOAL (auto-escribe .env)")
 print("=" * 60)
 
-app_secret = input("\n1. Pega tu APP SECRET (66c819c...): ").strip()
-user_token = input("2. Pega tu USER TOKEN de 60 dias (EAAe...): ").strip()
+app_secret = input("\n1. Pega tu APP SECRET: ").strip()
+user_token = input("2. Pega tu USER TOKEN del Explorer (EAA...): ").strip()
 
-# Paso 1: asegurar que el user token es de larga duracion
-print("\n[1/3] Verificando/extendiendo el user token...")
+# Paso 1: extender el user token a larga duracion
+print("\n[1/4] Extendiendo el user token...")
 r = requests.get(
     "https://graph.facebook.com/v21.0/oauth/access_token",
     params={
@@ -29,13 +34,13 @@ r = requests.get(
 )
 data = r.json()
 if "access_token" not in data:
-    print("ERROR:", data)
-    exit()
+    print("ERROR extendiendo:", data)
+    sys.exit(1)
 long_token = data["access_token"]
-print(f"    OK. Expira en {data.get('expires_in', 0)} segundos (~60 dias)")
+print("    OK.")
 
-# Paso 2: obtener el Page Token usando el long-lived user token
-print("\n[2/3] Obteniendo Page Token...")
+# Paso 2: obtener el Page Token
+print("\n[2/4] Obteniendo Page Token...")
 r = requests.get(
     f"https://graph.facebook.com/v21.0/{PAGE_ID}",
     params={"fields": "access_token", "access_token": long_token},
@@ -43,13 +48,13 @@ r = requests.get(
 )
 data = r.json()
 if "access_token" not in data:
-    print("ERROR:", data)
-    exit()
+    print("ERROR obteniendo Page Token:", data)
+    sys.exit(1)
 page_token = data["access_token"]
-print("    OK. Page Token obtenido.")
+print("    OK.")
 
-# Paso 3: verificar que NO caduca (expires_at == 0)
-print("\n[3/3] Verificando que es permanente...")
+# Paso 3: verificar que es PAGE y permanente
+print("\n[3/4] Verificando que es PAGE y expires_at=0...")
 r = requests.get(
     "https://graph.facebook.com/v21.0/debug_token",
     params={"input_token": page_token, "access_token": page_token},
@@ -58,19 +63,34 @@ r = requests.get(
 info = r.json().get("data", {})
 tipo = info.get("type")
 expira = info.get("expires_at")
+print(f"    Tipo: {tipo} | expires_at: {expira}")
 
-print(f"    Tipo: {tipo}")
-print(f"    expires_at: {expira}")
+if not (tipo == "PAGE" and expira == 0):
+    print("\n" + "=" * 60)
+    print("ABORTADO: el token NO es permanente. NO se ha tocado el .env.")
+    print("Repite generando un USER TOKEN nuevo en el Explorer.")
+    print("=" * 60)
+    sys.exit(1)
+
+# Paso 4: escribir en .env (reemplazando solo la linea PAGE_ACCESS_TOKEN)
+print("\n[4/4] Escribiendo el token en .env...")
+contenido = ARCHIVO_ENV.read_text(encoding="utf-8")
+nueva_linea = f"PAGE_ACCESS_TOKEN={page_token}"
+if re.search(r"^PAGE_ACCESS_TOKEN=.*$", contenido, flags=re.MULTILINE):
+    contenido = re.sub(r"^PAGE_ACCESS_TOKEN=.*$", nueva_linea, contenido, flags=re.MULTILINE)
+else:
+    contenido = contenido.rstrip() + "\n" + nueva_linea + "\n"
+ARCHIVO_ENV.write_text(contenido, encoding="utf-8")
+
+# Re-leer y confirmar
+releido = ARCHIVO_ENV.read_text(encoding="utf-8")
+m = re.search(r"^PAGE_ACCESS_TOKEN=(.*)$", releido, flags=re.MULTILINE)
+ok_escrito = m and m.group(1).strip() == page_token
 
 print("\n" + "=" * 60)
-if tipo == "PAGE" and expira == 0:
-    print("EXITO: Token PERMANENTE (tipo PAGE, no caduca)")
-    print("=" * 60)
-    print("\nCopia este token a tu .env como PAGE_ACCESS_TOKEN:\n")
-    print(page_token)
+if ok_escrito:
+    print("EXITO: token PERMANENTE (PAGE, expires_at=0) escrito en .env.")
+    print("No hace falta copiar nada. Siguiente: actualizar el Secret de GitHub.")
 else:
-    print("ATENCION: revisa el resultado, puede no ser permanente.")
-    print("=" * 60)
-    print("\nToken obtenido (usar con cuidado):\n")
-    print(page_token)
-print()
+    print("ATENCION: no se pudo confirmar la escritura en .env. Revisa manualmente.")
+print("=" * 60)
