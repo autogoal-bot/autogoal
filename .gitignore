@@ -14,3 +14,6 @@ publicados.json
 # Credenciales locales
 credenciales_autogoal.txt
 # Fuentes descargadas (se subiran aparte si hace falta)
+
+# Registro de resumenes de jornada
+resumenes.json
