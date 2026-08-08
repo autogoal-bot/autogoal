@@ -34,3 +34,29 @@ def get_partidos_por_rango(fecha_desde, fecha_hasta):
 
     # football-data.org devuelve los partidos en la clave "matches"
     return data.get("matches", [])
+
+def get_clasificacion():
+    """
+    Devuelve la tabla de clasificacion de LaLiga.
+    Endpoint /competitions/PD/standings, mismo token que el resto.
+    """
+    url = f"{FOOTBALL_DATA_BASE}/competitions/{LALIGA_CODE}/standings"
+    headers = {"X-Auth-Token": FOOTBALL_DATA_TOKEN}
+    r = requests.get(url, headers=headers, timeout=30)
+    if r.status_code != 200:
+        raise Exception(f"Error clasificacion: {r.status_code} - {r.text}")
+    return r.json()
+
+
+def get_partidos_jornada(numero_jornada):
+    """
+    Devuelve todos los partidos de una jornada concreta.
+    Sirve para saber si la jornada esta completa (todos FINISHED).
+    """
+    url = f"{FOOTBALL_DATA_BASE}/competitions/{LALIGA_CODE}/matches"
+    headers = {"X-Auth-Token": FOOTBALL_DATA_TOKEN}
+    params = {"matchday": numero_jornada}
+    r = requests.get(url, headers=headers, params=params, timeout=30)
+    if r.status_code != 200:
+        raise Exception(f"Error partidos jornada: {r.status_code} - {r.text}")
+    return r.json().get("matches", [])
