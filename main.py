@@ -47,7 +47,7 @@ def cargar_publicados():
 
 
 def guardar_publicados(feed_ids, story_ids):
-    with open(ARCHIVO_PUBLICADOS, "w", encoding="utf-8-sig") as f:
+    with open(ARCHIVO_PUBLICADOS, "w", encoding="utf-8") as f:
         json.dump(
             {"feed": sorted(feed_ids), "story": sorted(story_ids)},
             f,
