@@ -1,4 +1,4 @@
-﻿"""
+"""
 Autogoal - orquestador principal.
 
 Flujo:
@@ -36,7 +36,7 @@ def cargar_publicados():
     """
     if not ARCHIVO_PUBLICADOS.exists():
         return set(), set()
-    with open(ARCHIVO_PUBLICADOS, "r", encoding="utf-8") as f:
+    with open(ARCHIVO_PUBLICADOS, "r", encoding="utf-8-sig") as f:
         datos = json.load(f)
 
     # Migracion suave desde el formato viejo
@@ -47,7 +47,7 @@ def cargar_publicados():
 
 
 def guardar_publicados(feed_ids, story_ids):
-    with open(ARCHIVO_PUBLICADOS, "w", encoding="utf-8") as f:
+    with open(ARCHIVO_PUBLICADOS, "w", encoding="utf-8-sig") as f:
         json.dump(
             {"feed": sorted(feed_ids), "story": sorted(story_ids)},
             f,
