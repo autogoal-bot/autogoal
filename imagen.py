@@ -136,6 +136,6 @@ def generar_imagen_resultado(partido):
     _texto(draw, "@autogoal.es", ANCHO // 2, 1035, f_fbig, NEGRO)
 
     CARPETA_SALIDA.mkdir(exist_ok=True)
-    ruta = CARPETA_SALIDA / f"partido_{partido['id']}.png"
-    img.save(ruta, "PNG")
+    ruta = CARPETA_SALIDA / f"partido_{partido['id']}.jpg"
+    img.save(ruta, "JPEG", quality=92)
     return str(ruta)
