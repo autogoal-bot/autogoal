@@ -10,6 +10,25 @@ from datetime import datetime, timedelta, timezone
 
 ESTADO_TERMINADO = "FINISHED"
 
+# Nombres cortos que preferimos frente al shortName de la API.
+# La clave es el nombre completo (campo "name" de football-data.org).
+NOMBRES_PERSONALIZADOS = {
+    "RC Deportivo La Coruna": "Deportivo de La Coruna",
+    "RC Deportivo La Coruña": "Deportivo de La Coruña",
+    "Club Atletico de Madrid": "Atletico de Madrid",
+    "Club Atlético de Madrid": "Atlético de Madrid",
+    "Sevilla FC": "Sevilla",
+    "Real Racing Club de Santander": "Racing de Santander",
+}
+
+
+def _nombre_corto(equipo):
+    """Devuelve el nombre a mostrar, aplicando excepciones si las hay."""
+    completo = equipo["name"]
+    if completo in NOMBRES_PERSONALIZADOS:
+        return NOMBRES_PERSONALIZADOS[completo]
+    return equipo["shortName"] or completo
+
 
 def normalizar(match):
     """
@@ -25,12 +44,12 @@ def normalizar(match):
         "estado":     match["status"],
         "jornada":    match.get("matchday"),
         "home": {
-            "name":  match["homeTeam"]["shortName"] or match["homeTeam"]["name"],
+            "name":  _nombre_corto(match["homeTeam"]),
             "full":  match["homeTeam"]["name"],
             "tla":   match["homeTeam"]["tla"],
         },
         "away": {
-            "name":  match["awayTeam"]["shortName"] or match["awayTeam"]["name"],
+            "name":  _nombre_corto(match["awayTeam"]),
             "full":  match["awayTeam"]["name"],
             "tla":   match["awayTeam"]["tla"],
         },
