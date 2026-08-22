@@ -13,9 +13,9 @@ ESTADO_TERMINADO = "FINISHED"
 # Nombres cortos que preferimos frente al shortName de la API.
 # La clave es el nombre completo (campo "name" de football-data.org).
 NOMBRES_PERSONALIZADOS = {
-    "RC Deportivo La Coruna": "Deportivo de La Coruna",
+    "RC Deportivo La Coruna": "Deportivo de La Coruña",
     "RC Deportivo La Coruña": "Deportivo de La Coruña",
-    "Club Atletico de Madrid": "Atletico de Madrid",
+    "Club Atletico de Madrid": "Atlético de Madrid",
     "Club Atlético de Madrid": "Atlético de Madrid",
     "Sevilla FC": "Sevilla",
     "Real Racing Club de Santander": "Racing de Santander",

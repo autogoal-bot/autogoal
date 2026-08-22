@@ -23,7 +23,7 @@ GRIS_MEDIO = (120, 125, 135)
 ACENTO = (212, 175, 55)  # dorado para resaltar al ganador
 
 CARD_TOP = 210
-CARD_BOTTOM = 880
+CARD_BOTTOM = 800
 CARD_ANCHO = 460
 
 
@@ -70,6 +70,86 @@ def _ajustar_fuente(texto, archivo, smax, smin, max_ancho, draw):
     return _cargar_fuente(archivo, smin)
 
 
+def _partir_nombre(texto, draw, size=90, max_ancho=CARD_ANCHO - 50):
+    """
+    Devuelve (lineas, fuente) manteniendo el tamano grande.
+    Si el nombre no cabe en una linea, lo parte en dos por la palabra
+    que mejor equilibre. Solo reduce la fuente como ultimo recurso.
+    """
+    fuente = _cargar_fuente("BebasNeue-Regular.ttf", size)
+
+    def ancho(t):
+        b = draw.textbbox((0, 0), t, font=fuente)
+        return b[2] - b[0]
+
+    if ancho(texto) <= max_ancho:
+        return [texto], fuente
+
+    palabras = texto.split()
+    if len(palabras) > 1:
+        # Probar todos los cortes y quedarse con el mas equilibrado que quepa
+        mejor = None
+        for i in range(1, len(palabras)):
+            l1 = " ".join(palabras[:i])
+            l2 = " ".join(palabras[i:])
+            if ancho(l1) <= max_ancho and ancho(l2) <= max_ancho:
+                desviacion = abs(ancho(l1) - ancho(l2))
+                if mejor is None or desviacion < mejor[0]:
+                    mejor = (desviacion, [l1, l2])
+        if mejor:
+            return mejor[1], fuente
+
+    # Ultimo recurso: una sola linea con fuente reducida
+    return [texto], _ajustar_fuente(texto, "BebasNeue-Regular.ttf", size, 40, max_ancho, draw)
+
+
+def _mini_clasificacion(draw, x_izq, nombre_equipo, tabla):
+    """
+    Dibuja 3 filas bajo la tarjeta: el equipo con su predecesor y perseguidor.
+    Si no encuentra al equipo en la tabla, no dibuja nada.
+    """
+    if not tabla:
+        return
+
+    idx = None
+    objetivo = _sin_tildes(nombre_equipo).lower()
+    for i, fila in enumerate(tabla):
+        if _sin_tildes(fila["team"]["name"]).lower() == objetivo:
+            idx = i
+            break
+    if idx is None:
+        return
+
+    ini = max(0, min(idx - 1, len(tabla) - 3))
+    trio = tabla[ini:ini + 3]
+
+    f_row = _cargar_fuente("Montserrat-Regular.ttf", 21)
+    f_hit = _cargar_fuente("Montserrat-Bold.ttf", 22)
+
+    y0 = CARD_BOTTOM + 22
+    alto_fila = 32
+    x_pos = x_izq + 34
+    x_nom = x_izq + 78
+    x_pts = x_izq + CARD_ANCHO - 34
+
+    for i, fila in enumerate(trio):
+        cy = y0 + alto_fila * i + alto_fila // 2
+        es_este = (ini + i) == idx
+        fuente = f_hit if es_este else f_row
+        color = NEGRO if es_este else GRIS_MEDIO
+
+        if es_este:
+            draw.rectangle([x_izq + 14, cy - 14, x_izq + 20, cy + 14], fill=ACENTO)
+
+        nombre = fila["team"].get("shortName") or fila["team"]["name"]
+        if len(nombre) > 16:
+            nombre = nombre[:15] + "."
+
+        _texto(draw, str(fila["position"]), x_pos, cy, fuente, color)
+        _texto(draw, nombre, x_nom, cy, fuente, color, anchor="lm")
+        _texto(draw, str(fila["points"]), x_pts, cy, fuente, color, anchor="rm")
+
+
 def _dibujar_tarjeta(draw, x_izq, color_fondo, color_texto, nombre, goles, fuentes, es_ganador):
     x_der = x_izq + CARD_ANCHO
     cx = x_izq + CARD_ANCHO // 2
@@ -77,12 +157,16 @@ def _dibujar_tarjeta(draw, x_izq, color_fondo, color_texto, nombre, goles, fuent
     # Linea de acento dorada arriba si es el ganador
     if es_ganador:
         draw.rectangle([x_izq, CARD_TOP, x_der, CARD_TOP + 12], fill=ACENTO)
-    fn = _ajustar_fuente(nombre.upper(), "BebasNeue-Regular.ttf", 90, 40, CARD_ANCHO - 50, draw)
-    _texto(draw, nombre.upper(), cx, CARD_TOP + 200, fn, color_texto)
+    lineas, fn = _partir_nombre(nombre.upper(), draw)
+    if len(lineas) == 1:
+        _texto(draw, lineas[0], cx, CARD_TOP + 200, fn, color_texto)
+    else:
+        _texto(draw, lineas[0], cx, CARD_TOP + 158, fn, color_texto)
+        _texto(draw, lineas[1], cx, CARD_TOP + 252, fn, color_texto)
     _texto(draw, str(goles), cx, CARD_BOTTOM - 190, fuentes["goles"], color_texto)
 
 
-def generar_imagen_resultado(partido):
+def generar_imagen_resultado(partido, tabla=None):
     home = partido["home"]
     away = partido["away"]
     goles_home = partido["goles_home"]
@@ -124,6 +208,9 @@ def generar_imagen_resultado(partido):
                      home["name"], goles_home, fuentes, gana_home)
     _dibujar_tarjeta(draw, ANCHO - CARD_ANCHO, _hex_a_rgb(ea["color"]), _hex_a_rgb(ea["texto"]),
                      away["name"], goles_away, fuentes, gana_away)
+
+    _mini_clasificacion(draw, 0, home["full"], tabla)
+    _mini_clasificacion(draw, ANCHO - CARD_ANCHO, away["full"], tabla)
 
     _texto(draw, "VS", ANCHO // 2, (CARD_TOP + CARD_BOTTOM) // 2, f_vs, NEGRO)
 

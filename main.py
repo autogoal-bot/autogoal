@@ -13,7 +13,7 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from api_client import get_partidos_por_rango
+from api_client import get_partidos_por_rango, get_clasificacion
 from partidos import filtrar_terminados, termino_hace_menos_de
 from imagen import generar_imagen_resultado
 from story import generar_story_resultado
@@ -98,7 +98,12 @@ def procesar_partido(partido, feed_ids, story_ids):
     # --- FEED ---
     if falta_feed:
         try:
-            ruta_imagen = generar_imagen_resultado(partido)
+            try:
+                tabla = get_clasificacion()["standings"][0]["table"]
+            except Exception as e:
+                print(f"    Aviso: no se pudo leer la clasificacion ({e}). Se publica sin ella.")
+                tabla = None
+            ruta_imagen = generar_imagen_resultado(partido, tabla)
             print(f"    Imagen feed generada: {ruta_imagen}")
             caption = construir_caption(partido)
             publicar_en_instagram(ruta_imagen, caption)
