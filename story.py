@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from PIL import Image, ImageDraw, ImageFont
 from equipos import get_equipo
 from estadios import ESTADIOS
+from imagen import _mini_clasificacion, _sin_tildes as _sin_tildes_feed
 
 ANCHO = 1080
 ALTO = 1920
@@ -85,56 +86,276 @@ def _tarjeta(draw, x_izq, color_fondo, color_texto, nombre, goles, f_goles, es_g
     _texto(draw, str(goles), cx, CARD_BOTTOM - 230, f_goles, color_texto)
 
 
-def generar_story_resultado(partido):
+def generar_story_resultado(partido, tabla=None):
     """Genera la Story vertical 1080x1920 en JPEG. Devuelve la ruta."""
     home = partido["home"]
     away = partido["away"]
     gh = partido["goles_home"]
     ga = partido["goles_away"]
+
     jornada = partido.get("jornada", "")
     fecha_txt = _formatear_fecha(partido["fecha"]) if partido.get("fecha") else ""
     estadio = _get_estadio(home["full"])
 
     eh = get_equipo(home["full"])
     ea = get_equipo(away["full"])
+
+    goleadores_home = partido.get("goleadores_home", [])
+    goleadores_away = partido.get("goleadores_away", [])
+
     gana_h = gh > ga
     gana_a = ga > gh
 
     img = Image.new("RGB", (ANCHO, ALTO), FONDO)
     draw = ImageDraw.Draw(img)
 
-    f_goles = _cargar_fuente("BebasNeue-Regular.ttf", 260)
-    f_badge = _cargar_fuente("Montserrat-Bold.ttf", 34)
-    f_sub = _cargar_fuente("Montserrat-SemiBold.ttf", 30)
-    f_vs = _cargar_fuente("BebasNeue-Regular.ttf", 100)
-    f_big = _cargar_fuente("Montserrat-Bold.ttf", 36)
-    f_small = _cargar_fuente("Montserrat-Regular.ttf", 28)
+    f_goles = _cargar_fuente("BebasNeue-Regular.ttf", 220)
+    f_badge = _cargar_fuente("Montserrat-Bold.ttf", 32)
+    f_sub = _cargar_fuente("Montserrat-SemiBold.ttf", 27)
+    f_vs = _cargar_fuente("BebasNeue-Regular.ttf", 82)
+    f_big = _cargar_fuente("Montserrat-Bold.ttf", 30)
+    f_small = _cargar_fuente("Montserrat-Regular.ttf", 22)
+    f_goleador = _cargar_fuente("Montserrat-Regular.ttf", 21)
+    f_goleador_bold = _cargar_fuente("Montserrat-Bold.ttf", 21)
+    f_titulo = _cargar_fuente("Montserrat-Bold.ttf", 22)
 
-    # Badge FINAL
-    bw, bh = 190, 66
+    # ── CABECERA ──
+    bw, bh = 180, 62
     bx = (ANCHO - bw) // 2
-    by = 420
-    draw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=33, fill=NEGRO)
+    by = 250
+
+    draw.rounded_rectangle(
+        [bx, by, bx + bw, by + bh],
+        radius=31,
+        fill=NEGRO
+    )
     _texto(draw, "FINAL", ANCHO // 2, by + bh // 2, f_badge, BLANCO)
 
     jt = f"JORNADA {jornada}  -  LALIGA" if jornada else "LALIGA"
-    _texto(draw, jt, ANCHO // 2, 540, f_sub, GRIS_MEDIO)
+    _texto(draw, jt, ANCHO // 2, 350, f_sub, GRIS_MEDIO)
 
-    _tarjeta(draw, 0, _hex_a_rgb(eh["color"]), _hex_a_rgb(eh["texto"]),
-             home["name"], gh, f_goles, gana_h)
-    _tarjeta(draw, ANCHO - CARD_ANCHO, _hex_a_rgb(ea["color"]), _hex_a_rgb(ea["texto"]),
-             away["name"], ga, f_goles, gana_a)
+    # ── TARJETAS DEL RESULTADO ──
+    # Algo más compactas que antes para dejar sitio a goleadores/clasificación.
+    card_top_original = CARD_TOP
+    card_bottom_original = CARD_BOTTOM
 
-    _texto(draw, "VS", ANCHO // 2, (CARD_TOP + CARD_BOTTOM) // 2, f_vs, NEGRO)
+    # Dibujamos manualmente usando las mismas proporciones visuales.
+    top = 440
+    bottom = 1050
 
-    y = 1480
+    def tarjeta(x_izq, color_fondo, color_texto, nombre, goles, ganador):
+        x_der = x_izq + CARD_ANCHO
+        cx = x_izq + CARD_ANCHO // 2
+
+        draw.rectangle(
+            [x_izq, top, x_der, bottom],
+            fill=color_fondo
+        )
+
+        if ganador:
+            draw.rectangle(
+                [x_izq, top, x_der, top + 12],
+                fill=ACENTO
+            )
+
+        fn = _ajustar_fuente(
+            nombre.upper(),
+            "BebasNeue-Regular.ttf",
+            72,
+            34,
+            CARD_ANCHO - 45,
+            draw
+        )
+
+        _texto(
+            draw,
+            nombre.upper(),
+            cx,
+            top + 150,
+            fn,
+            color_texto
+        )
+
+        _texto(
+            draw,
+            str(goles),
+            cx,
+            bottom - 150,
+            f_goles,
+            color_texto
+        )
+
+    tarjeta(
+        0,
+        _hex_a_rgb(eh["color"]),
+        _hex_a_rgb(eh["texto"]),
+        home["name"],
+        gh,
+        gana_h
+    )
+
+    tarjeta(
+        ANCHO - CARD_ANCHO,
+        _hex_a_rgb(ea["color"]),
+        _hex_a_rgb(ea["texto"]),
+        away["name"],
+        ga,
+        gana_a
+    )
+
+    _texto(draw, "VS", ANCHO // 2, (top + bottom) // 2, f_vs, NEGRO)
+
+    # ── GOLEADORES ──
+    y_gol_titulo = 1110
+
+    _texto(
+        draw,
+        "GOLEADORES",
+        ANCHO // 2,
+        y_gol_titulo,
+        f_titulo,
+        NEGRO
+    )
+
+    y_gol = y_gol_titulo + 38
+
+    max_goleadores = max(
+        len(goleadores_home),
+        len(goleadores_away)
+    )
+
+    # Cada lado conserva su propia lista.
+    for i in range(max_goleadores):
+        cy = y_gol + i * 27
+
+        if i < len(goleadores_home):
+            g = goleadores_home[i]
+
+            if isinstance(g, dict):
+                nombre = (
+                    g.get("nombre")
+                    or g.get("name")
+                    or g.get("jugador")
+                    or ""
+                )
+                minuto = (
+                    g.get("minuto")
+                    or g.get("minute")
+                    or ""
+                )
+            else:
+                nombre = str(g)
+                minuto = ""
+
+            texto = nombre
+            if minuto:
+                texto += f" {minuto}'"
+
+            _texto(
+                draw,
+                texto,
+                25,
+                cy,
+                f_goleador,
+                NEGRO,
+                anchor="lm"
+            )
+
+        if i < len(goleadores_away):
+            g = goleadores_away[i]
+
+            if isinstance(g, dict):
+                nombre = (
+                    g.get("nombre")
+                    or g.get("name")
+                    or g.get("jugador")
+                    or ""
+                )
+                minuto = (
+                    g.get("minuto")
+                    or g.get("minute")
+                    or ""
+                )
+            else:
+                nombre = str(g)
+                minuto = ""
+
+            texto = nombre
+            if minuto:
+                texto += f" {minuto}'"
+
+            _texto(
+                draw,
+                texto,
+                ANCHO - 25,
+                cy,
+                f_goleador,
+                NEGRO,
+                anchor="rm"
+            )
+
+    # ── MINI CLASIFICACIÓN ──
+    # Se coloca debajo de los goleadores, usando la misma función
+    # y el mismo diseño que el feed.
+    y_clas = (
+        y_gol
+        + max_goleadores * 27
+        + 25
+    )
+
+    _mini_clasificacion(
+        draw,
+        0,
+        home["full"],
+        tabla,
+        "izq",
+        y_clas
+    )
+
+    _mini_clasificacion(
+        draw,
+        ANCHO - CARD_ANCHO,
+        away["full"],
+        tabla,
+        "der",
+        y_clas
+    )
+
+    # ── PIE ──
+    y_pie = 1780
+
     if estadio:
-        _texto(draw, estadio.upper(), ANCHO // 2, y, f_sub, GRIS_MEDIO)
-        y += 50
-    _texto(draw, fecha_txt, ANCHO // 2, y, f_small, GRIS_MEDIO)
-    _texto(draw, "@autogoal.es", ANCHO // 2, 1600, f_big, NEGRO)
+        _texto(
+            draw,
+            estadio.upper(),
+            ANCHO // 2,
+            y_pie,
+            f_small,
+            GRIS_MEDIO
+        )
+        y_pie += 35
+
+    _texto(
+        draw,
+        fecha_txt,
+        ANCHO // 2,
+        y_pie,
+        f_small,
+        GRIS_MEDIO
+    )
+
+    _texto(
+        draw,
+        "@autogoal.es",
+        ANCHO // 2,
+        1870,
+        f_big,
+        NEGRO
+    )
 
     CARPETA_SALIDA.mkdir(exist_ok=True)
     ruta = CARPETA_SALIDA / f"story_{partido['id']}.jpg"
     img.save(ruta, "JPEG", quality=92)
+
     return str(ruta)
+

@@ -118,7 +118,13 @@ def procesar_partido(partido, feed_ids, story_ids):
     # --- STORY (solo si el feed esta OK, sea de ahora o de un run anterior) ---
     if falta_story:
         try:
-            ruta_story = generar_story_resultado(partido)
+            try:
+                tabla_story = get_clasificacion()["standings"][0]["table"]
+            except Exception as e:
+                print(f"    Aviso: no se pudo leer la clasificacion para Story ({e}).")
+                tabla_story = None
+
+            ruta_story = generar_story_resultado(partido, tabla_story)
             print(f"    Imagen story generada: {ruta_story}")
             publicar_story(ruta_story)
             story_ids.add(partido_id)
