@@ -26,6 +26,8 @@ BLANCO = (255, 255, 255)
 NEGRO = (20, 22, 26)
 GRIS_MEDIO = (120, 125, 135)
 ACENTO = (212, 175, 55)
+GRIS_SUAVE = (188, 193, 203)
+GRIS_OSCURO = (62, 68, 80)
 
 CARD_ANCHO = 460
 CARD_ALTO = 470
@@ -198,6 +200,43 @@ def _mini_clasificacion(draw, x_izq, nombre_equipo, tabla_real, lado, y_inicio):
         _texto(draw, str(fila["points"]), x_pts, cy, fuente, color, anchor=a_pts)
 
 
+
+def _cabecera_estadio(draw, cx, cy, estadio, asistencia, max_ancho=ANCHO - 110):
+    """
+    Pinta "MARTINEZ VALERO  .  30.704 ESPECTADORES" en UNA linea centrada,
+    con jerarquia: cifra en Bold oscuro, resto en gris.
+    Reduce el cuerpo entero si no cabe. Sin asistencia, solo el estadio.
+    """
+    try:
+        num = f"{int(asistencia):,}".replace(",", ".") if asistencia else ""
+    except (TypeError, ValueError):
+        num = ""
+
+    size = 29
+    while True:
+        f_semi = _cargar_fuente("Montserrat-SemiBold.ttf", size)
+        f_bold = _cargar_fuente("Montserrat-Bold.ttf", size)
+        f_reg = _cargar_fuente("Montserrat-Regular.ttf", max(size - 3, 16))
+
+        segmentos = [(estadio.upper(), f_reg, GRIS_MEDIO)]
+        if num:
+            segmentos += [
+                ("   \u00b7   ", f_reg, GRIS_SUAVE),
+                (num, f_reg, GRIS_MEDIO),
+                (" ESPECTADORES", f_reg, GRIS_MEDIO),
+            ]
+
+        total = sum(draw.textlength(t, font=f) for t, f, _ in segmentos)
+        if total <= max_ancho or size <= 20:
+            break
+        size -= 2
+
+    x = cx - total / 2
+    for texto, fuente, color in segmentos:
+        draw.text((x, cy), texto, font=fuente, fill=color, anchor="lm")
+        x += draw.textlength(texto, font=fuente)
+
+
 def generar_story_resultado(partido, tabla=None):
     """Genera la Story vertical 1080x1920 en JPEG. Devuelve la ruta."""
     home = partido["home"]
@@ -208,6 +247,11 @@ def generar_story_resultado(partido, tabla=None):
     jornada = partido.get("jornada", "")
     fecha_txt = _formatear_fecha(partido["fecha"]) if partido.get("fecha") else ""
     estadio = _get_estadio(home["full"])
+    # Asistencia: sin fuente automatica fiable (football-data.org no la
+    # incluye; el endpoint interno de FotMob devuelve 404). El helper de
+    # cabecera ya la soporta: basta con asignar aqui un entero si algun
+    # dia hay una fuente estable.
+    asistencia = None
 
     eh = get_equipo(home["full"])
     ea = get_equipo(away["full"])
@@ -240,6 +284,7 @@ def generar_story_resultado(partido, tabla=None):
     total = H_BADGE + GAP_BADGE + H_JORNADA
     if estadio:
         total += H_ESTADIO
+
     total += H_FECHA + GAP_CABECERA + CARD_ALTO
 
     if max_goleadores:
@@ -267,8 +312,9 @@ def generar_story_resultado(partido, tabla=None):
     y += H_JORNADA
 
     if estadio:
-        _texto(draw, estadio.upper(), ANCHO // 2,
-               y + H_ESTADIO // 2, f_estadio, GRIS_MEDIO)
+        _cabecera_estadio(
+            draw, ANCHO // 2, y + H_ESTADIO // 2, estadio, asistencia
+        )
         y += H_ESTADIO
 
     _texto(draw, fecha_txt, ANCHO // 2, y + H_FECHA // 2, f_fecha, GRIS_MEDIO)
