@@ -22,8 +22,8 @@ NEGRO = (20, 22, 26)
 GRIS_MEDIO = (120, 125, 135)
 ACENTO = (212, 175, 55)  # dorado para resaltar al ganador
 
-CARD_TOP = 210
-CARD_BOTTOM = 800
+CARD_TOP = 270
+CARD_BOTTOM = 880
 CARD_ANCHO = 460
 
 
@@ -103,67 +103,298 @@ def _partir_nombre(texto, draw, size=90, max_ancho=CARD_ANCHO - 50):
     return [texto], _ajustar_fuente(texto, "BebasNeue-Regular.ttf", size, 40, max_ancho, draw)
 
 
-def _mini_clasificacion(draw, x_izq, nombre_equipo, tabla):
+def _extraer_tabla_clasificacion(tabla):
     """
-    Dibuja 3 filas bajo la tarjeta: el equipo con su predecesor y perseguidor.
-    Si no encuentra al equipo en la tabla, no dibuja nada.
+    Extrae la lista de equipos desde la respuesta completa de
+    football-data.org.
+
+    Acepta tanto la respuesta completa de la API como una lista ya
+    preparada, para mantener la funcion robusta.
     """
     if not tabla:
+        return []
+
+    if isinstance(tabla, list):
+        return tabla
+
+    if isinstance(tabla, dict):
+        standings = tabla.get("standings", [])
+        if standings:
+            return standings[0].get("table", [])
+
+    return []
+
+
+def _mini_clasificacion(
+    draw,
+    x_izq,
+    nombre_equipo,
+    tabla,
+    lado="izq",
+    y_inicio=670,
+):
+    """
+    Mini clasificación:
+
+        predecesor
+        equipo del partido  <- destacado
+        perseguidor
+
+    La clasificación se coloca debajo de los goleadores.
+    """
+
+    tabla_real = _extraer_tabla_clasificacion(tabla)
+
+    if not tabla_real:
         return
 
-    idx = None
     objetivo = _sin_tildes(nombre_equipo).lower()
-    for i, fila in enumerate(tabla):
-        if _sin_tildes(fila["team"]["name"]).lower() == objetivo:
+    idx = None
+
+    for i, fila in enumerate(tabla_real):
+        nombre = fila.get("team", {}).get("name", "")
+
+        if _sin_tildes(nombre).lower() == objetivo:
             idx = i
             break
+
     if idx is None:
         return
 
-    ini = max(0, min(idx - 1, len(tabla) - 3))
-    trio = tabla[ini:ini + 3]
+    ini = max(0, min(idx - 1, len(tabla_real) - 3))
+    trio = tabla_real[ini:ini + 3]
 
-    f_row = _cargar_fuente("Montserrat-Regular.ttf", 21)
-    f_hit = _cargar_fuente("Montserrat-Bold.ttf", 22)
+    f_row = _cargar_fuente("Montserrat-Regular.ttf", 20)
+    f_hit = _cargar_fuente("Montserrat-Bold.ttf", 21)
 
-    y0 = CARD_BOTTOM + 22
-    alto_fila = 32
-    x_pos = x_izq + 34
-    x_nom = x_izq + 78
-    x_pts = x_izq + CARD_ANCHO - 34
+    # --------------------------------------------------------
+    # POSICIÓN VERTICAL
+    # --------------------------------------------------------
+
+    # La posición ya viene calculada desde generar_imagen_resultado.
+    # Así local y visitante pueden tener una posición distinta
+    # dependiendo de cuántos goleadores tenga cada uno.
+    y0 = y_inicio
+
+    alto_fila = 25
+
+    # --------------------------------------------------------
+    # POSICIÓN HORIZONTAL
+    # --------------------------------------------------------
+
+    if lado == "izq":
+        x_pos = x_izq + 34
+        x_nom = x_izq + 78
+        x_pts = x_izq + CARD_ANCHO - 34
+
+        anchor_pos = "lm"
+        anchor_nom = "lm"
+        anchor_pts = "rm"
+
+    else:
+        x_pos = x_izq + CARD_ANCHO - 34
+        x_nom = x_izq + CARD_ANCHO - 78
+        x_pts = x_izq + 34
+
+        anchor_pos = "rm"
+        anchor_nom = "rm"
+        anchor_pts = "lm"
+
+    # --------------------------------------------------------
+    # DIBUJAR LAS 3 FILAS
+    # --------------------------------------------------------
 
     for i, fila in enumerate(trio):
+
         cy = y0 + alto_fila * i + alto_fila // 2
+
         es_este = (ini + i) == idx
+
         fuente = f_hit if es_este else f_row
         color = NEGRO if es_este else GRIS_MEDIO
 
-        if es_este:
-            draw.rectangle([x_izq + 14, cy - 14, x_izq + 20, cy + 14], fill=ACENTO)
+        nombre = (
+            fila["team"].get("shortName")
+            or fila["team"].get("name", "")
+        )
 
-        nombre = fila["team"].get("shortName") or fila["team"]["name"]
         if len(nombre) > 16:
             nombre = nombre[:15] + "."
 
-        _texto(draw, str(fila["position"]), x_pos, cy, fuente, color)
-        _texto(draw, nombre, x_nom, cy, fuente, color, anchor="lm")
-        _texto(draw, str(fila["points"]), x_pts, cy, fuente, color, anchor="rm")
+        _texto(
+            draw,
+            str(fila["position"]),
+            x_pos,
+            cy,
+            fuente,
+            color,
+            anchor=anchor_pos,
+        )
+
+        _texto(
+            draw,
+            nombre,
+            x_nom,
+            cy,
+            fuente,
+            color,
+            anchor=anchor_nom,
+        )
+
+        _texto(
+            draw,
+            str(fila["points"]),
+            x_pts,
+            cy,
+            fuente,
+            color,
+            anchor=anchor_pts,
+        )
 
 
-def _dibujar_tarjeta(draw, x_izq, color_fondo, color_texto, nombre, goles, fuentes, es_ganador):
+def _dibujar_tarjeta(
+    draw,
+    x_izq,
+    color_fondo,
+    color_texto,
+    nombre,
+    goles,
+    fuentes,
+    es_ganador,
+    goleadores=None,
+    lado="izq",
+):
+    """
+    Dibuja la tarjeta superior del equipo y sus goleadores debajo.
+
+    Los goleadores quedan fuera del fondo de color:
+    - local: alineados a la izquierda
+    - visitante: alineados a la derecha
+    """
     x_der = x_izq + CARD_ANCHO
     cx = x_izq + CARD_ANCHO // 2
-    draw.rectangle([x_izq, CARD_TOP, x_der, CARD_BOTTOM], fill=color_fondo)
-    # Linea de acento dorada arriba si es el ganador
+
+    # Tarjeta de color compacta.
+    card_bottom_nuevo = 650
+
+    draw.rectangle(
+        [x_izq, CARD_TOP, x_der, card_bottom_nuevo],
+        fill=color_fondo
+    )
+
     if es_ganador:
-        draw.rectangle([x_izq, CARD_TOP, x_der, CARD_TOP + 12], fill=ACENTO)
-    lineas, fn = _partir_nombre(nombre.upper(), draw)
+        draw.rectangle(
+            [x_izq, CARD_TOP, x_der, CARD_TOP + 10],
+            fill=ACENTO
+        )
+
+    # Nombre del equipo mas arriba.
+    lineas, fn = _partir_nombre(
+        nombre.upper(),
+        draw,
+        size=82,
+        max_ancho=CARD_ANCHO - 55
+    )
+
     if len(lineas) == 1:
-        _texto(draw, lineas[0], cx, CARD_TOP + 200, fn, color_texto)
+        _texto(
+            draw,
+            lineas[0],
+            cx,
+            CARD_TOP + 115,
+            fn,
+            color_texto
+        )
     else:
-        _texto(draw, lineas[0], cx, CARD_TOP + 158, fn, color_texto)
-        _texto(draw, lineas[1], cx, CARD_TOP + 252, fn, color_texto)
-    _texto(draw, str(goles), cx, CARD_BOTTOM - 190, fuentes["goles"], color_texto)
+        _texto(
+            draw,
+            lineas[0],
+            cx,
+            CARD_TOP + 82,
+            fn,
+            color_texto
+        )
+        _texto(
+            draw,
+            lineas[1],
+            cx,
+            CARD_TOP + 155,
+            fn,
+            color_texto
+        )
+
+    # Resultado.
+    _texto(
+        draw,
+        str(goles),
+        cx,
+        CARD_TOP + 275,
+        fuentes["goles"],
+        color_texto
+    )
+
+    # --------------------------------------------------------
+    # GOLEADORES FUERA DE LA TARJETA
+    # --------------------------------------------------------
+
+    if not goleadores:
+        return
+
+    f_goleador = _cargar_fuente(
+        "Montserrat-Regular.ttf", 24
+    )
+
+    f_minuto = _cargar_fuente(
+        "Montserrat-Regular.ttf", 22
+    )
+
+    # Posicion de inicio de los goleadores.
+    y_gol = 670
+
+    if lado == "izq":
+        x_texto = x_izq + 28
+        anchor = "lm"
+    else:
+        x_texto = x_der - 28
+        anchor = "rm"
+
+    for gol in goleadores:
+        nombre_gol = gol.get("nombre", "")
+        minuto = gol.get("minuto", "")
+
+        texto_gol = f"{nombre_gol}  {minuto}"
+
+        # Si es demasiado largo, reducimos antes de cortar.
+        max_ancho = CARD_ANCHO - 55
+        bbox = draw.textbbox(
+            (0, 0),
+            texto_gol,
+            font=f_goleador
+        )
+
+        if bbox[2] - bbox[0] > max_ancho:
+            f_tmp = _ajustar_fuente(
+                texto_gol,
+                "Montserrat-SemiBold.ttf",
+                24,
+                17,
+                max_ancho,
+                draw
+            )
+        else:
+            f_tmp = f_goleador
+
+        _texto(
+            draw,
+            texto_gol,
+            x_texto,
+            y_gol,
+            f_tmp,
+            GRIS_MEDIO,
+            anchor=anchor
+        )
+
+        y_gol += 29
 
 
 def generar_imagen_resultado(partido, tabla=None):
@@ -171,6 +402,8 @@ def generar_imagen_resultado(partido, tabla=None):
     away = partido["away"]
     goles_home = partido["goles_home"]
     goles_away = partido["goles_away"]
+    goleadores_home = partido.get("goleadores_home", [])
+    goleadores_away = partido.get("goleadores_away", [])
     jornada = partido.get("jornada", "")
     fecha_txt = _formatear_fecha(partido["fecha"]) if partido.get("fecha") else ""
     estadio = _get_estadio(home["full"])
@@ -184,7 +417,7 @@ def generar_imagen_resultado(partido, tabla=None):
     img = Image.new("RGB", (ANCHO, ALTO), FONDO)
     draw = ImageDraw.Draw(img)
 
-    fuentes = {"goles": _cargar_fuente("BebasNeue-Regular.ttf", 240)}
+    fuentes = {"goles": _cargar_fuente("BebasNeue-Regular.ttf", 190)}
     f_badge = _cargar_fuente("Montserrat-Bold.ttf", 28)
     f_sub = _cargar_fuente("Montserrat-SemiBold.ttf", 26)
     f_vs = _cargar_fuente("BebasNeue-Regular.ttf", 90)
@@ -201,25 +434,98 @@ def generar_imagen_resultado(partido, tabla=None):
     _texto(draw, "FINAL", ANCHO // 2, by0 + badge_h // 2, f_badge, BLANCO)
 
     jt = f"JORNADA {jornada}  -  LALIGA" if jornada else "LALIGA"
-    _texto(draw, jt, ANCHO // 2, 160, f_sub, GRIS_MEDIO)
+    _texto(draw, jt, ANCHO // 2, 150, f_sub, GRIS_MEDIO)
+
+    # Estadio + fecha/hora debajo de la jornada.
+    info_y = 190
+
+    if estadio:
+        _texto(
+            draw,
+            estadio.upper(),
+            ANCHO // 2,
+            info_y,
+            f_estadio,
+            GRIS_MEDIO
+        )
+        info_y += 34
+
+    _texto(
+        draw,
+        fecha_txt,
+        ANCHO // 2,
+        info_y,
+        f_fsmall,
+        GRIS_MEDIO
+    )
 
     # ── TARJETAS ──
-    _dibujar_tarjeta(draw, 0, _hex_a_rgb(eh["color"]), _hex_a_rgb(eh["texto"]),
-                     home["name"], goles_home, fuentes, gana_home)
-    _dibujar_tarjeta(draw, ANCHO - CARD_ANCHO, _hex_a_rgb(ea["color"]), _hex_a_rgb(ea["texto"]),
-                     away["name"], goles_away, fuentes, gana_away)
+    _dibujar_tarjeta(
+        draw,
+        0,
+        _hex_a_rgb(eh["color"]),
+        _hex_a_rgb(eh["texto"]),
+        home["name"],
+        goles_home,
+        fuentes,
+        gana_home,
+        goleadores_home,
+        "izq",
+    )
 
-    _mini_clasificacion(draw, 0, home["full"], tabla)
-    _mini_clasificacion(draw, ANCHO - CARD_ANCHO, away["full"], tabla)
+    _dibujar_tarjeta(
+        draw,
+        ANCHO - CARD_ANCHO,
+        _hex_a_rgb(ea["color"]),
+        _hex_a_rgb(ea["texto"]),
+        away["name"],
+        goles_away,
+        fuentes,
+        gana_away,
+        goleadores_away,
+        "der",
+    )
 
-    _texto(draw, "VS", ANCHO // 2, (CARD_TOP + CARD_BOTTOM) // 2, f_vs, NEGRO)
+    # ── MINI CLASIFICACIÓN ──
+    # Ambas mini-clasificaciones empiezan EXACTAMENTE a la misma altura.
+    # Reservamos espacio según el equipo que tenga más goleadores.
+    # Así nunca se solapan con los goleadores de ninguno de los dos lados.
+
+    alto_goleador = 29
+    margen_clasificacion = 18
+
+    max_goleadores = max(
+        len(goleadores_home),
+        len(goleadores_away),
+    )
+
+    y_clas = (
+        670
+        + max_goleadores * alto_goleador
+        + margen_clasificacion
+    )
+
+    _mini_clasificacion(
+        draw,
+        0,
+        home["full"],
+        tabla,
+        "izq",
+        y_clas,
+    )
+
+    _mini_clasificacion(
+        draw,
+        ANCHO - CARD_ANCHO,
+        away["full"],
+        tabla,
+        "der",
+        y_clas,
+    )
+
+    _texto(draw, "VS", ANCHO // 2, CARD_TOP + 265, f_vs, NEGRO)
 
     # ── FOOTER ──
-    y = 935
-    if estadio:
-        _texto(draw, estadio.upper(), ANCHO // 2, y, f_estadio, GRIS_MEDIO)
-        y += 40
-    _texto(draw, fecha_txt, ANCHO // 2, y, f_fsmall, GRIS_MEDIO)
     _texto(draw, "@autogoal.es", ANCHO // 2, 1035, f_fbig, NEGRO)
 
     CARPETA_SALIDA.mkdir(exist_ok=True)

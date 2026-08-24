@@ -161,8 +161,14 @@ def main():
     print(f"Terminados en las ultimas {VENTANA_HORAS}h: {len(recien_terminados)}")
 
     # Pendiente = le falta feed O story
+    # Pendiente = le falta feed O story.
+    #
+    # IMPORTANTE:
+    # No limitamos los pendientes a las ultimas 3 horas.
+    # Si el bot estuvo apagado, fallo o no tuvo conexion,
+    # el partido debe seguir pendiente hasta publicarse.
     pendientes = [
-        p for p in recien_terminados
+        p for p in terminados
         if p["id"] not in feed_ids or p["id"] not in story_ids
     ]
     print(f"Pendientes de publicar (feed o story): {len(pendientes)}")
