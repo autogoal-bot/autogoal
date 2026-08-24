@@ -206,16 +206,8 @@ def generar_story_resultado(partido, tabla=None):
     _texto(draw, "VS", ANCHO // 2, (top + bottom) // 2, f_vs, NEGRO)
 
     # ── GOLEADORES ──
-    y_gol_titulo = 1110
+    y_gol_titulo = 930
 
-    _texto(
-        draw,
-        "GOLEADORES",
-        ANCHO // 2,
-        y_gol_titulo,
-        f_titulo,
-        NEGRO
-    )
 
     y_gol = y_gol_titulo + 38
 
@@ -322,7 +314,7 @@ def generar_story_resultado(partido, tabla=None):
     )
 
     # ── PIE ──
-    y_pie = 1780
+    y_pie = 1760
 
     if estadio:
         _texto(
