@@ -127,7 +127,8 @@ def dibujar(draw, x_izq, ancho, nombre_equipo, tabla, lado, y_inicio,
         elif i > 0:
             draw.line([(x0 + pad, y0), (x1 - pad, y0)], fill=LINEA, width=1)
 
-        cz = color_zona(int(fila["position"]))
+        pos_visual = ini + i + 1
+        cz = color_zona(pos_visual)
 
         if cz:
             fondo_pill = cz
@@ -142,7 +143,7 @@ def dibujar(draw, x_izq, ancho, nombre_equipo, tabla, lado, y_inicio,
         px = x0 + pad
         draw.rounded_rectangle([px, cy - pill // 2, px + pill, cy + pill // 2],
                                radius=s(6), fill=fondo_pill)
-        draw.text((px + pill // 2, cy + 1), str(fila["position"]),
+        draw.text((px + pill // 2, cy + 1), str(pos_visual),
                   font=f_pos, fill=color_num, anchor="mm")
 
         nombre_raw = fila["team"].get("shortName") or fila["team"].get("name", "")
