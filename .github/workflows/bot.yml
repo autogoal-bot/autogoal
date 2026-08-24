@@ -2,9 +2,9 @@
 
 on:
   schedule:
-    # Cada 15 minutos, entre las 11:00 y 23:00 UTC.
+    # Cada 10 minutos, entre las 11:00 y 23:00 UTC.
     # UTC+2 (verano espanol) = 13:00 a 01:00 hora espanola.
-    - cron: "*/15 11-23 * * *"
+    - cron: "*/10 11-23 * * *"
   workflow_dispatch:  # Permite ejecutar manualmente desde GitHub
 
 # Permiso para que el workflow pueda escribir (commit/push) en el repo
