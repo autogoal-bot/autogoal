@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from PIL import Image, ImageDraw, ImageFont
 from equipos import get_equipo
 from estadios import ESTADIOS
+import clasificacion
 
 ANCHO = 1080
 ALTO = 1920
@@ -46,7 +47,7 @@ GAP_CABECERA = 30
 GAP_TARJETA = 24
 H_FILA_GOLEADOR = 36
 GAP_GOLEADORES = 22
-H_FILA_CLASIF = 34
+H_FILA_CLASIF = 48
 GAP_CLASIF = 70
 H_PIE = 44
 
@@ -417,9 +418,10 @@ def generar_story_resultado(partido, tabla=None):
     # 5) MINI CLASIFICACION
     # ------------------------------------------------------------
     if hay_clasif:
-        _mini_clasificacion(draw, 0, home["full"], tabla_real, "izq", y)
-        _mini_clasificacion(draw, ANCHO - CARD_ANCHO, away["full"],
-                            tabla_real, "der", y)
+        clasificacion.dibujar(draw, 0, CARD_ANCHO, home["full"], tabla_real,
+                              "izq", y, alto_fila=H_FILA_CLASIF)
+        clasificacion.dibujar(draw, ANCHO - CARD_ANCHO, CARD_ANCHO, away["full"],
+                              tabla_real, "der", y, alto_fila=H_FILA_CLASIF)
         y += 3 * H_FILA_CLASIF
 
     # ------------------------------------------------------------

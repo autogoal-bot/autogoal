@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from PIL import Image, ImageDraw, ImageFont
 from equipos import get_equipo
 from estadios import ESTADIOS
+import clasificacion
 
 ANCHO = 1080
 ALTO = 1080
@@ -528,23 +529,11 @@ def generar_imagen_resultado(partido, tabla=None):
         + margen_clasificacion
     )
 
-    _mini_clasificacion(
-        draw,
-        0,
-        home["full"],
-        tabla,
-        "izq",
-        y_clas,
-    )
+    clasificacion.dibujar(draw, 0, CARD_ANCHO, home["full"], tabla,
+                          "izq", y_clas, alto_fila=35, escala=0.72)
 
-    _mini_clasificacion(
-        draw,
-        ANCHO - CARD_ANCHO,
-        away["full"],
-        tabla,
-        "der",
-        y_clas,
-    )
+    clasificacion.dibujar(draw, ANCHO - CARD_ANCHO, CARD_ANCHO, away["full"],
+                          tabla, "der", y_clas, alto_fila=35, escala=0.72)
 
     _texto(draw, "VS", ANCHO // 2, CARD_TOP + 265, f_vs, NEGRO)
 
