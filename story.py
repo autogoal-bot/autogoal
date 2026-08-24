@@ -95,12 +95,35 @@ def _ajustar_fuente(texto, archivo, smax, smin, max_ancho, draw):
     return _cargar_fuente(archivo, smin)
 
 
+
+# Nombres que queremos partir por un punto concreto, no por el mas equilibrado.
+CORTES_FORZADOS = {
+    "RACING DE SANTANDER": ["RACING", "DE SANTANDER"],
+    "REAL RACING CLUB": ["REAL RACING", "CLUB"],
+    "REAL SOCIEDAD DE FUTBOL": ["REAL", "SOCIEDAD"],
+    "REAL SOCIEDAD DE FÚTBOL": ["REAL", "SOCIEDAD"],
+    "RAYO VALLECANO DE MADRID": ["RAYO", "VALLECANO"],
+    "RCD ESPANYOL DE BARCELONA": ["RCD", "ESPANYOL"],
+    "DEPORTIVO DE LA CORUNA": ["DEPORTIVO", "DE LA CORUÑA"],
+    "DEPORTIVO DE LA CORUÑA": ["DEPORTIVO", "DE LA CORUÑA"],
+    "ATLETICO DE MADRID": ["ATLETICO", "DE MADRID"],
+    "ATLÉTICO DE MADRID": ["ATLÉTICO", "DE MADRID"],
+}
+
+
 def _partir_nombre(texto, draw, size=95, max_ancho=CARD_ANCHO - 55):
     """
     Igual que en el feed: mantiene la fuente grande y parte el nombre
     en dos lineas equilibradas si no cabe. Solo reduce como ultimo recurso.
     """
     fuente = _cargar_fuente("BebasNeue-Regular.ttf", size)
+
+    forzado = CORTES_FORZADOS.get(texto.upper())
+    if forzado:
+        f = _cargar_fuente("BebasNeue-Regular.ttf", size)
+        if all(draw.textbbox((0, 0), l, font=f)[2] <= max_ancho for l in forzado):
+            return forzado, f
+
 
     def ancho(t):
         b = draw.textbbox((0, 0), t, font=fuente)
