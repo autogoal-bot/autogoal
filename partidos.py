@@ -32,47 +32,58 @@ def _nombre_corto(equipo):
 
 def _normalizar_nombre_espn(nombre):
     """
-    Normaliza nombres de equipos para poder compararlos entre
-    football-data.org y ESPN.
+    Normaliza nombres para comparar football-data.org con ESPN.
+
+    En vez de un diccionario a mano (que se rompe cada vez que asciende
+    un equipo nuevo), elimina prefijos/sufijos de club y compara el
+    nucleo del nombre. "RC Deportivo La Coruna" y "Deportivo" casan solos.
     """
-    import unicodedata
+    import unicodedata, re
 
     nombre = unicodedata.normalize("NFD", nombre)
-    nombre = "".join(
-        c for c in nombre
-        if unicodedata.category(c) != "Mn"
-    )
-
+    nombre = "".join(c for c in nombre if unicodedata.category(c) != "Mn")
     nombre = nombre.lower().strip()
+    nombre = re.sub(r"[^a-z0-9 ]", " ", nombre)
 
-    # Diferencias habituales entre football-data.org y ESPN.
-    equivalencias = {
-        "deportivo alaves": "alaves",
-        "alaves": "alaves",
-
-        "getafe cf": "getafe",
-        "getafe": "getafe",
-
-        "elche cf": "elche",
-        "elche": "elche",
-
-        "fc barcelona": "barcelona",
-        "barcelona": "barcelona",
-
-        "sevilla fc": "sevilla",
-        "sevilla": "sevilla",
-
-        "rayo vallecano de madrid": "rayo vallecano",
-        "rayo vallecano": "rayo vallecano",
-
-        "club atletico de madrid": "atletico de madrid",
-        "atletico de madrid": "atletico de madrid",
-
-        "athletic club": "athletic club",
-        "athletic bilbao": "athletic club",
+    RUIDO = {
+        "cf", "fc", "rc", "rcd", "cd", "ud", "ca", "sd", "sad",
+        "club", "real", "de", "del", "la", "las", "el", "los",
+        "futbol", "balompie", "deportivo1", "atletico1",
     }
 
-    return equivalencias.get(nombre, nombre)
+    tokens = [t for t in nombre.split() if t and t not in RUIDO]
+
+    # Casos donde el nucleo quedaria vacio o ambiguo al quitar "real"
+    if not tokens:
+        tokens = nombre.split()
+
+    # Desambiguar los tres "Real" que comparten nucleo corto
+    txt = nombre
+    if "sociedad" in txt:
+        return "sociedad"
+    if "madrid" in txt and "atletico" in txt:
+        return "atletico madrid"
+    if "rayo" in txt:
+        return "rayo vallecano"
+    if "madrid" in txt:
+        return "madrid"
+    if "betis" in txt:
+        return "betis"
+    if "racing" in txt or "santander" in txt:
+        return "racing"
+    if "coruna" in txt or ("deportivo" in txt and "alaves" not in txt):
+        return "deportivo"
+    if "alaves" in txt:
+        return "alaves"
+    if "espanyol" in txt:
+        return "espanyol"
+    if "celta" in txt:
+        return "celta"
+    if "athletic" in txt:
+        return "athletic"
+
+    return " ".join(tokens)
+
 
 def _obtener_goleadores_espn(fecha_utc, equipo_home, equipo_away):
     """
