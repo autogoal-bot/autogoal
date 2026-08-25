@@ -42,7 +42,10 @@ ALIAS_CLASIF = {
     "rayo vallecano de madrid": "Rayo",
     "rayo vallecano": "Rayo",
     "real sociedad de futbol": "R. Sociedad",
-    "rc deportivo la coruna": "Deportivo",
+    "rc deportivo la coruna": "Deportivo La Coruña",
+    "deportivo": "Deportivo La Coruña",
+    "santander": "Racing",
+    "rayo vallecano": "Rayo",
     "real racing club de santander": "Racing",
     "real racing club": "Racing",
     "rcd espanyol de barcelona": "Espanyol",
@@ -149,8 +152,8 @@ def dibujar(draw, x_izq, ancho, nombre_equipo, tabla, lado, y_inicio,
         nombre_raw = fila["team"].get("shortName") or fila["team"].get("name", "")
         clave = _sin_tildes(nombre_raw).lower()
         nombre = ALIAS_CLASIF.get(clave, nombre_raw)
-        if len(nombre) > 13:
-            nombre = nombre[:12] + "."
+        if len(nombre) > 24:
+            nombre = nombre[:23] + "."
         draw.text((px + pill + s(16), cy), nombre,
                   font=f_hit if hit else f_nom,
                   fill=NEGRO if hit else GRIS_TEXTO, anchor="lm")

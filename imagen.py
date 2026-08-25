@@ -1,4 +1,4 @@
-﻿"""
+"""
 Generador de imagenes premium para resultados de LaLiga.
 Tarjetas laterales de color por equipo sobre fondo claro.
 Incluye: ganador resaltado, badge FINAL, estadio en footer.
@@ -538,7 +538,10 @@ def generar_imagen_resultado(partido, tabla=None):
     _texto(draw, "VS", ANCHO // 2, CARD_TOP + 265, f_vs, NEGRO)
 
     # ── FOOTER ──
-    _texto(draw, "@autogoal.es", ANCHO // 2, 1035, f_fbig, NEGRO)
+    # Se coloca justo debajo del contenido, no clavado al fondo,
+    # para que el bloque no quede descolgado en marcadores cortos.
+    y_footer = max(y_clas + 3 * 35 + 70, 980)
+    _texto(draw, "@autogoal.es", ANCHO // 2, y_footer, f_fbig, NEGRO)
 
     CARPETA_SALIDA.mkdir(exist_ok=True)
     ruta = CARPETA_SALIDA / f"partido_{partido['id']}.jpg"
