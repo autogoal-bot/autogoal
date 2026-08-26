@@ -188,7 +188,7 @@ def _pantalla_clasificacion(tabla, progreso):
                fill=BLANCO if cz else GRIS, anchor="mm")
 
         nom = fila["team"].get("shortName") or fila["team"]["name"]
-        d.text((132, cy), _nombre_reel(nom)[:24], font=f_nom,
+        d.text((132, cy), _nombre_reel(nom)[:26], font=f_nom,
                fill=NEGRO, anchor="lm")
         d.text((ANCHO - 70, cy + 3), str(fila["points"]), font=f_pts,
                fill=NEGRO, anchor="rm")
@@ -206,7 +206,10 @@ ALIAS_REEL = {
     "barca": "Barcelona",
     "atleti": "Atlético de Madrid",
     "r. sociedad": "Real Sociedad",
-    "deportivo la coruna": "Deportivo",
+    "deportivo la coruna": "Deportivo de La Coruña",
+    "deportivo": "Deportivo de La Coruña",
+    "alaves": "Deportivo Alavés",
+    "rayo": "Rayo Vallecano",
 }
 
 
@@ -251,10 +254,6 @@ def _capsula_equipo(img, d, x0, y, x1, y1, radio, nombre_full, color):
                                            radius=radio, fill=255)
     img.paste(capa, (x0, y), mask)
 
-    # Contorno: sin el, una capsula blanca sobre fondo claro se lee como
-    # un hueco. El borde la convierte en tarjeta.
-    d.rounded_rectangle([x0, y, x1, y1], radius=radio,
-                        outline=(214, 218, 226), width=3)
     return txt
 
 
@@ -281,11 +280,12 @@ def _pantalla_pichichi(pichichis, progreso):
 
     f_pos = _f("BebasNeue-Regular.ttf", 54)
     f_nom = _f("Montserrat-Bold.ttf", 40)
-    f_eq = _f("Montserrat-Bold.ttf", 28)
+    f_eq = _f("Montserrat-Bold.ttf", 32)
     f_gol = _f("BebasNeue-Regular.ttf", 54)
 
     for i, s in enumerate(pichichis[:10]):
         lider = (i == 0)
+        especial_activo = False
         cy = y + alto // 2
 
         col = _rgb(get_equipo(s.get("equipo_full", s.get("equipo", "")))
@@ -299,7 +299,7 @@ def _pantalla_pichichi(pichichis, progreso):
         # POSICION: fuera, alineada a la derecha. Dos digitos crecen hacia
         # la izquierda sin apretarse.
         d.text((x_pos, cy + 2), str(i + 1), font=f_pos,
-               fill=ORO if lider else (170, 176, 188), anchor="rm")
+               fill=(170, 176, 188), anchor="rm")
 
         if lider:
             d.rounded_rectangle([x0, y, x1, y + alto], radius=alto // 2,
@@ -308,17 +308,30 @@ def _pantalla_pichichi(pichichis, progreso):
             especial = _capsula_equipo(img, d, x0, y, x1, y + alto, alto // 2,
                                        s.get("equipo_full", ""), fondo)
             if especial:
-                txt = sub = especial
+                txt = especial
+                sub = (130, 136, 148)
+                especial_activo = True
+                # El borde va DESPUES del paste, o la franja lo taparia
+                d = ImageDraw.Draw(img)
+                d.rounded_rectangle([x0, y, x1, y + alto], radius=alto // 2,
+                                    outline=(178, 185, 199), width=4)
 
         xn = x0 + 42
         d.text((xn, cy - 18), s["nombre"][:26], font=f_nom, fill=txt, anchor="lm")
-        d.text((xn + 2, cy + 30), _nombre_reel(s.get("equipo", ""))[:22].upper(),
+        d.text((xn + 2, cy + 30), _nombre_reel(s.get("equipo", ""))[:26].upper(),
                font=f_eq, fill=sub, anchor="lm")
 
         # GOLES: dentro, en circulo. El dato.
         gx = x1 - 56
+        if lider:
+            borde = ORO
+        elif especial_activo:
+            # Capsula clara: sin borde el circulo blanco desaparece
+            borde = (178, 185, 199)
+        else:
+            borde = None
         d.ellipse([gx - 40, cy - 40, gx + 40, cy + 40], fill=BLANCO,
-                  outline=ORO if lider else None, width=5)
+                  outline=borde, width=5)
         d.text((gx, cy + 3), str(s["goles"]), font=f_gol, fill=NEGRO, anchor="mm")
 
         y += alto + gap
