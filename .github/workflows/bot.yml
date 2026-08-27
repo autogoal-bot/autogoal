@@ -2,9 +2,10 @@
 
 on:
   schedule:
-    # Cada 10 minutos, entre las 11:00 y 23:00 UTC.
-    # UTC+2 (verano espanol) = 13:00 a 01:00 hora espanola.
-    - cron: "*/10 11-23 * * *"
+    # Cada 30 min, 24h. Cada ejecucion vive 50 min haciendo polling
+    # interno cada 2 min, asi que hay solape: si GitHub se salta una
+    # tanda, la siguiente recoge lo pendiente.
+    - cron: "*/30 * * * *"
   workflow_dispatch:  # Permite ejecutar manualmente desde GitHub
 
 # Permiso para que el workflow pueda escribir (commit/push) en el repo
@@ -35,8 +36,9 @@ jobs:
           echo "INSTAGRAM_ACCOUNT_ID=${{ secrets.INSTAGRAM_ACCOUNT_ID }}" >> .env
           echo "IMGBB_API_KEY=${{ secrets.IMGBB_API_KEY }}" >> .env
 
-      - name: Ejecutar el bot
-        run: python main.py
+      - name: Ejecutar el bot (bucle de 50 min)
+        timeout-minutes: 55
+        run: python bucle.py
 
       - name: Guardar publicados.json en el repo
         if: always()
@@ -48,5 +50,6 @@ jobs:
             echo "Sin cambios en publicados.json, nada que commitear."
           else
             git commit -m "Actualizar registro de publicados [skip ci]"
+            git pull --rebase --autostash
             git push
           fi
