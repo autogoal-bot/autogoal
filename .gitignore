@@ -22,3 +22,11 @@ resumenes.json
 resumenes.json
 .env*
 .env*
+videos_generados/
+*_ANTES.py
+*_v1.py
+*_v2.py
+*_v3.py
+*_v4.py
+reel_claro.py
+*.bak
