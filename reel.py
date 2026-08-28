@@ -290,23 +290,19 @@ def _pantalla_pichichi(pichichis, progreso):
 
         col = _rgb(get_equipo(s.get("equipo_full", s.get("equipo", "")))
                    .get("color", "#888888"))
-        if lider:
-            fondo, txt, sub = BLANCO, ORO, (130, 136, 148)
-        else:
-            fondo = col
-            txt = sub = _texto_sobre(col)
+        # El lider lleva SU color como todos. Se distingue por el marco
+        # dorado, no por un blanco que solo funcionaba si lideraba el Madrid.
+        fondo = col
+        txt = sub = _texto_sobre(col)
 
         # POSICION: fuera, alineada a la derecha. Dos digitos crecen hacia
         # la izquierda sin apretarse.
         d.text((x_pos, cy + 2), str(i + 1), font=f_pos,
                fill=(170, 176, 188), anchor="rm")
 
-        if lider:
-            d.rounded_rectangle([x0, y, x1, y + alto], radius=alto // 2,
-                                fill=fondo, outline=(226, 214, 178), width=3)
-        else:
-            especial = _capsula_equipo(img, d, x0, y, x1, y + alto, alto // 2,
-                                       s.get("equipo_full", ""), fondo)
+        especial = _capsula_equipo(img, d, x0, y, x1, y + alto, alto // 2,
+                                   s.get("equipo_full", ""), fondo)
+        if True:
             if especial:
                 txt = especial
                 sub = (130, 136, 148)
@@ -323,16 +319,15 @@ def _pantalla_pichichi(pichichis, progreso):
 
         # GOLES: dentro, en circulo. El dato.
         gx = x1 - 56
-        if lider:
-            borde = ORO
-        elif especial_activo:
+        if especial_activo:
             # Capsula clara: sin borde el circulo blanco desaparece
             borde = (178, 185, 199)
         else:
             borde = None
-        d.ellipse([gx - 40, cy - 40, gx + 40, cy + 40], fill=BLANCO,
-                  outline=borde, width=5)
-        d.text((gx, cy + 3), str(s["goles"]), font=f_gol, fill=NEGRO, anchor="mm")
+        d.ellipse([gx - 40, cy - 40, gx + 40, cy + 40],
+                  fill=BLANCO, outline=borde, width=5)
+        d.text((gx, cy + 3), str(s["goles"]), font=f_gol,
+               fill=NEGRO, anchor="mm")
 
         y += alto + gap
 
