@@ -189,8 +189,8 @@ def _pantalla_clasificacion(tabla, progreso):
     f_nom = _f("Montserrat-SemiBold.ttf", 34)
     f_pts = _f("BebasNeue-Regular.ttf", 48)
 
-    alto = 74
-    y = 310
+    alto = 70
+    y = 296
 
     for i, fila in enumerate(tabla[:20]):
         pos = i + 1
