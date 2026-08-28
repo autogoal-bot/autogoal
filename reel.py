@@ -112,8 +112,26 @@ def _cabecera(d, titulo, subtitulo):
 
 
 def _pie(d, progreso):
-    d.text((ANCHO // 2, ALTO - 80), "@autogoal.es",
-           font=_f("Montserrat-Bold.ttf", 36), fill=NEGRO, anchor="mm")
+    """
+    Pie con llamada a la accion. 137 espectadores y 0 seguidores nuevos
+    indica que la gente consume pero no se plantea seguir: hay que
+    pedirlo explicitamente. Va en las tres pantallas, asi se ve en
+    cada pasada del bucle sin robar tiempo de lectura.
+    """
+    cta = "SÍGUENOS PARA LOS RESULTADOS DE CADA JORNADA"
+    f_cta = _f("Montserrat-Bold.ttf", 27)
+    ancho_cta = d.textlength(cta, font=f_cta)
+
+    x0 = (ANCHO - ancho_cta) // 2 - 34
+    x1 = (ANCHO + ancho_cta) // 2 + 34
+    y0, y1 = ALTO - 178, ALTO - 108
+
+    d.rounded_rectangle([x0, y0, x1, y1], radius=35, fill=NEGRO)
+    d.text((ANCHO // 2, (y0 + y1) // 2 + 1), cta, font=f_cta,
+           fill=BLANCO, anchor="mm")
+
+    d.text((ANCHO // 2, ALTO - 62), "@autogoal.es",
+           font=_f("Montserrat-Bold.ttf", 34), fill=NEGRO, anchor="mm")
     d.rectangle([0, ALTO - 10, int(ANCHO * progreso), ALTO], fill=ORO)
 
 
