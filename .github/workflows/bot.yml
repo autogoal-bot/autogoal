@@ -9,6 +9,14 @@ on:
   workflow_dispatch:  # Permite ejecutar manualmente desde GitHub
 
 # Permiso para que el workflow pueda escribir (commit/push) en el repo
+# Un solo run a la vez. Sin esto, dos bucles solapados leen el mismo
+# publicados.json antes de que ninguno lo actualice y publican el mismo
+# partido dos veces. cancel-in-progress mata la tanda vieja al arrancar
+# la nueva: cobertura continua, cero duplicados.
+concurrency:
+  group: autogoal-bot
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
