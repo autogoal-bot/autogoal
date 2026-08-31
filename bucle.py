@@ -9,7 +9,10 @@ Solucion: una sola ejecucion que se queda viva haciendo polling interno.
 Aunque GitHub retrase el arranque, dentro del bucle se publica a los
 ~2 minutos del pitido final.
 
-Los workflows tienen limite de 6h; 50 min deja margen de sobra.
+27 min: el cron lanza uno cada 30, asi el bucle muere solo antes de
+que llegue el siguiente. Si en vez de eso lo cancela el concurrency,
+puede cortarse entre publicar en Instagram y guardar el registro,
+y eso es exactamente lo que causaba los duplicados.
 """
 
 import time
@@ -18,7 +21,7 @@ from datetime import datetime, timezone
 
 import main
 
-DURACION_MIN = 50
+DURACION_MIN = 27
 INTERVALO_SEG = 120
 
 
