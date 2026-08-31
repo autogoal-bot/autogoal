@@ -27,6 +27,44 @@ def _log(msg):
     print(f"[{ahora} UTC] {msg}", flush=True)
 
 
+
+def _git(*args):
+    """Ejecuta git en silencio. Devuelve True si fue bien."""
+    import subprocess
+    r = subprocess.run(["git", *args], capture_output=True, text=True)
+    if r.returncode != 0:
+        _log(f"git {' '.join(args)} -> {r.stderr.strip()[:120]}")
+    return r.returncode == 0
+
+
+def _sincronizar():
+    """Trae el registro mas reciente antes de decidir que publicar."""
+    _git("config", "user.name", "autogoal-bot")
+    _git("config", "user.email", "bot@autogoal.es")
+    _git("stash", "push", "-q", "--", "publicados.json")
+    _git("pull", "--rebase", "-q", "origin", "main")
+    _git("stash", "pop", "-q")
+
+
+def _persistir():
+    """
+    Sube el registro INMEDIATAMENTE tras publicar. Si esperamos al final
+    del job, una cancelacion o un fallo pierde los IDs y el siguiente
+    bucle republica lo mismo: eso causo los duplicados.
+    """
+    import subprocess
+    _git("add", "-f", "publicados.json")
+    hay_cambios = subprocess.run(
+        ["git", "diff", "--staged", "--quiet"]).returncode != 0
+    if not hay_cambios:
+        return
+    _git("commit", "-q", "-m", "Actualizar registro de publicados [skip ci]")
+    if not _git("push", "-q"):
+        _git("pull", "--rebase", "-q", "--autostash")
+        _git("push", "-q")
+    _log("Registro sincronizado con el repo.")
+
+
 def ejecutar():
     fin = time.time() + DURACION_MIN * 60
     vuelta = 0
@@ -40,7 +78,9 @@ def ejecutar():
         _log(f"--- Vuelta {vuelta} ---")
 
         try:
+            _sincronizar()
             main.main()
+            _persistir()
             fallos = 0
         except Exception:
             fallos += 1
