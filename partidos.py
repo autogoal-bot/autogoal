@@ -93,6 +93,7 @@ def _obtener_goleadores_espn(fecha_utc, equipo_home, equipo_away):
 
     goleadores_home = []
     goleadores_away = []
+    encontrado = False
 
     try:
         fecha = fecha_utc[:10].replace("-", "")
@@ -133,7 +134,7 @@ def _obtener_goleadores_espn(fecha_utc, equipo_home, equipo_away):
                 f"[ESPN] No encontrado: "
                 f"{equipo_home} vs {equipo_away} ({fecha})"
             )
-            return goleadores_home, goleadores_away
+            return goleadores_home, goleadores_away, False
 
         espn_id = evento_encontrado["id"]
 
@@ -143,6 +144,10 @@ def _obtener_goleadores_espn(fecha_utc, equipo_home, equipo_away):
             params={"event": espn_id},
             timeout=15
         ).json()
+
+        # ESPN tiene el partido: su marcador sirve para contrastar
+        # el de football-data.org antes de publicar.
+        encontrado = True
 
         # 3. Extraer los goles
         for evento in summary.get("keyEvents", []):
@@ -180,8 +185,9 @@ def _obtener_goleadores_espn(fecha_utc, equipo_home, equipo_away):
 
     except Exception as e:
         print(f"[ESPN] Error obteniendo goleadores: {e}")
+        return goleadores_home, goleadores_away, False
 
-    return goleadores_home, goleadores_away
+    return goleadores_home, goleadores_away, encontrado
 
 def normalizar(match):
     """
@@ -196,7 +202,7 @@ def normalizar(match):
     away_full = match["awayTeam"]["name"]
 
     # Obtener goleadores desde ESPN
-    goleadores_home, goleadores_away = _obtener_goleadores_espn(
+    goleadores_home, goleadores_away, espn_ok = _obtener_goleadores_espn(
         fecha,
         home_full,
         away_full
@@ -225,6 +231,7 @@ def normalizar(match):
 
         "goleadores_home": goleadores_home,
         "goleadores_away": goleadores_away,
+        "espn_ok": espn_ok,
     }
 
 def esta_terminado(partido):
