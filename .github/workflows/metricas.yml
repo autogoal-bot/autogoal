@@ -1,0 +1,35 @@
+name: Metricas Instagram
+
+on:
+  workflow_dispatch:
+
+jobs:
+  metricas:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el repo
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install requests python-dotenv tzdata
+
+      - name: Extraer metricas
+        env:
+          PAGE_ACCESS_TOKEN: ${{ secrets.PAGE_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+        run: python metricas.py
+
+      - name: Guardar los CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metricas-csv
+          path: "*.csv"
+          if-no-files-found: warn
+          retention-days: 30
