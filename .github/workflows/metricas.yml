@@ -21,7 +21,7 @@ jobs:
 
       - name: Extraer metricas
         env:
-          PAGE_ACCESS_TOKEN: ${{ secrets.PAGE_ACCESS_TOKEN }}
+          PAGE_ACCESS_TOKEN: ${{ secrets.INSIGHTS_TOKEN }}
           INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
         run: python metricas.py
 
