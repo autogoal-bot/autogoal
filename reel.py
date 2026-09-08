@@ -99,16 +99,22 @@ def titular_jornada(partidos, tabla, pichichis):
     return "RESULTADOS"
 
 
-def _cabecera(d, titulo, subtitulo):
+def _cabecera(d, titulo, subtitulo, titular=None):
     # Marca arriba: si alguien comparte o graba el Reel, la marca viaja con el.
     d.text((ANCHO // 2, 78), "AUTOGOAL", font=_f("BebasNeue-Regular.ttf", 52),
            fill=NEGRO, anchor="mm")
     d.rectangle([ANCHO // 2 - 90, 108, ANCHO // 2 + 90, 113], fill=ORO)
 
-    d.text((ANCHO // 2, 186), titulo, font=_f("BebasNeue-Regular.ttf", 92),
-           fill=NEGRO, anchor="mm")
-    d.text((ANCHO // 2, 250), subtitulo, font=_f("Montserrat-Bold.ttf", 30),
-           fill=ORO, anchor="mm")
+    if titular:
+        d.text((ANCHO // 2, 190), titular, font=_f("BebasNeue-Regular.ttf", 96),
+               fill=NEGRO, anchor="mm")
+        d.text((ANCHO // 2, 254), f"{titulo} · {subtitulo}",
+               font=_f("Montserrat-Bold.ttf", 30), fill=ORO, anchor="mm")
+    else:
+        d.text((ANCHO // 2, 186), titulo, font=_f("BebasNeue-Regular.ttf", 92),
+               fill=NEGRO, anchor="mm")
+        d.text((ANCHO // 2, 250), subtitulo, font=_f("Montserrat-Bold.ttf", 30),
+               fill=ORO, anchor="mm")
 
 
 def _pie(d, progreso):
@@ -138,7 +144,7 @@ def _pie(d, progreso):
 def _pantalla_resultados(jornada, partidos, progreso, titular="RESULTADOS"):
     img = Image.new("RGB", (ANCHO, ALTO), FONDO)
     d = ImageDraw.Draw(img)
-    _cabecera(d, f"JORNADA {jornada}", "RESULTADOS")
+    _cabecera(d, f"JORNADA {jornada}", "RESULTADOS", titular=titular)
 
     f_eq = _f("Montserrat-SemiBold.ttf", 38)
     f_gol = _f("BebasNeue-Regular.ttf", 62)
@@ -241,6 +247,10 @@ def _nombre_reel(nombre):
 # (fondo_capsula, color_franja, color_texto)
 FRANJA_DIAGONAL = {
     "rayo vallecano de madrid": ((255, 255, 255), (206, 30, 40), NEGRO),
+    "fc barcelona":             (_rgb("#A50044"), _rgb("#004D98"), BLANCO),
+    "real sociedad de futbol":  (_rgb("#0067B1"), BLANCO,          BLANCO),
+    "deportivo alaves":         (_rgb("#1E3A8A"), BLANCO,          BLANCO),
+    "rcd espanyol de barcelona":(_rgb("#007FC8"), BLANCO,          BLANCO),
 }
 
 
@@ -264,7 +274,7 @@ def _capsula_equipo(img, d, x0, y, x1, y1, radio, nombre_full, color):
     capa = Image.new("RGB", (w, h), base)
     cd = ImageDraw.Draw(capa)
     # Franja ancha en el tercio derecho, inclinada como la del Rayo
-    cd.polygon([(w * 0.62, 0), (w * 0.80, 0), (w * 0.58, h), (w * 0.40, h)],
+    cd.polygon([(w * 0.74, 0), (w * 0.90, 0), (w * 0.72, h), (w * 0.56, h)],
                fill=franja)
 
     mask = Image.new("L", (w, h), 0)
@@ -323,7 +333,7 @@ def _pantalla_pichichi(pichichis, progreso):
         if True:
             if especial:
                 txt = especial
-                sub = (130, 136, 148)
+                sub = (130, 136, 148) if especial == NEGRO else txt
                 especial_activo = True
                 # El borde va DESPUES del paste, o la franja lo taparia
                 d = ImageDraw.Draw(img)
