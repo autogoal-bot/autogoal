@@ -60,3 +60,16 @@ def get_partidos_jornada(numero_jornada):
     if r.status_code != 200:
         raise Exception(f"Error partidos jornada: {r.status_code} - {r.text}")
     return r.json().get("matches", [])
+
+
+def get_temporada_terminada():
+    """
+    Todos los partidos ya jugados de la temporada, en UNA sola peticion.
+    Necesario para rachas y evolucion de tabla sin gastar el limite del
+    plan gratuito (10 peticiones/minuto).
+    """
+    r = requests.get(
+        f"{FOOTBALL_DATA_BASE}/competitions/{LALIGA_CODE}/matches",
+        headers=_headers(), params={"status": "FINISHED"}, timeout=20)
+    r.raise_for_status()
+    return sorted(r.json().get("matches", []), key=lambda m: m["utcDate"])

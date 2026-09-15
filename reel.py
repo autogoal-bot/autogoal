@@ -61,7 +61,7 @@ BREVE = {
     "Deportivo La Coruña": "Deportivo",
     "Real Sociedad": "R. Sociedad",
     "Rayo Vallecano": "Rayo",
-    "Atleti": "Atletico Madrid",
+    "Atleti": "Atlético",
     "Barça": "Barcelona",
 }
 
@@ -99,6 +99,17 @@ def titular_jornada(partidos, tabla, pichichis):
     return "RESULTADOS"
 
 
+def _ajustar(texto, fuente, size_max, size_min, ancho_max):
+    """Baja el tamano hasta que el texto quepa en ancho_max. Devuelve la fuente."""
+    from PIL import ImageDraw as _ID
+    medidor = _ID.Draw(Image.new("RGB", (1, 1)))
+    for size in range(size_max, size_min - 1, -2):
+        f = _f(fuente, size)
+        if medidor.textlength(texto, font=f) <= ancho_max:
+            return f
+    return _f(fuente, size_min)
+
+
 def _cabecera(d, titulo, subtitulo, titular=None):
     # Marca arriba: si alguien comparte o graba el Reel, la marca viaja con el.
     d.text((ANCHO // 2, 78), "AUTOGOAL", font=_f("BebasNeue-Regular.ttf", 52),
@@ -106,7 +117,10 @@ def _cabecera(d, titulo, subtitulo, titular=None):
     d.rectangle([ANCHO // 2 - 90, 108, ANCHO // 2 + 90, 113], fill=ORO)
 
     if titular:
-        d.text((ANCHO // 2, 190), titular, font=_f("BebasNeue-Regular.ttf", 96),
+        # Los titulares nuevos (rachas, anomalias) tienen longitud imprevisible.
+        # Sin esto, uno largo se sale de los 1080px y se corta en silencio.
+        f_tit = _ajustar(titular, "BebasNeue-Regular.ttf", 96, 44, ANCHO - 120)
+        d.text((ANCHO // 2, 190), titular, font=f_tit,
                fill=NEGRO, anchor="mm")
         d.text((ANCHO // 2, 254), f"{titulo} · {subtitulo}",
                font=_f("Montserrat-Bold.ttf", 30), fill=ORO, anchor="mm")
@@ -363,11 +377,11 @@ def _pantalla_pichichi(pichichis, progreso):
     return img
 
 
-def generar_reel(jornada, partidos, tabla, pichichis):
+def generar_reel(jornada, partidos, tabla, pichichis, titular=None):
     CARPETA_SALIDA.mkdir(exist_ok=True)
     ruta = CARPETA_SALIDA / f"reel_jornada_{jornada}.mp4"
 
-    tit = titular_jornada(partidos, tabla, pichichis)
+    tit = titular or titular_jornada(partidos, tabla, pichichis)
     print("Titular:", tit)
     por_pantalla = int(FPS * DUR_PANTALLA)
     total = por_pantalla * 3
