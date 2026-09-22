@@ -44,6 +44,14 @@ def _racha_final(seq, letra):
     return n
 
 
+PESO = {
+    "Real Madrid": 8, "Barça": 8,
+    "Atleti": 5, "Athletic": 4, "Sevilla FC": 4, "Valencia": 4,
+    "Real Betis": 4, "Real Sociedad": 3,
+    "Villarreal": 2, "Celta": 2, "Espanyol": 2,
+    "Deportivo": 2, "Rayo Vallecano": 2,
+}
+
 ORD = {2: "SEGUNDA", 3: "TERCERA", 4: "CUARTA", 5: "QUINTA",
        6: "SEXTA", 7: "SEPTIMA", 8: "OCTAVA"}
 
@@ -66,26 +74,31 @@ def candidatos(jornada, partidos_jornada, tabla, todos_partidos, corto):
             continue
         p = _racha_final(seq, "P")
         if p >= 3:
-            out.append((92, f"{ORD.get(p, str(p))} DERROTA SEGUIDA DEL {C}", club))
+            out.append((92, f"¿{p} DERROTAS SEGUIDAS?", club))
         g = _racha_final(seq, "G")
         if g >= 3:
             out.append((88, f"{ORD.get(g, str(g))} VICTORIA SEGUIDA DEL {C}", club))
         if len(seq) >= 4 and "G" not in seq:
             # Sin ganar perdiendo pesa mas que sin ganar empatando.
-            out.append((90 + seq.count("P"), f"EL {C} SIGUE SIN GANAR", club))
+            out.append((90 + seq.count("P"), f"¿{len(seq)} JORNADAS SIN GANAR?", club))
 
     # --- 2. TABLA (consecuencias invisibles en los marcadores)
     for f in tabla:
         club = f["team"].get("shortName") or f["team"]["name"]
         C = corto(club).upper()
-        pos, pj = f["position"], f.get("playedGames", 0)
+        # playedGames viene de la clasificacion EN VIVO: con partidos aplazados
+        # dos equipos llevan jornadas distintas y el titular acaba diciendo
+        # "6 JORNADAS" debajo de "JORNADA 7". Contamos hasta ESTA jornada.
+        pos = f["position"]
+        pj = len(hist.get(club, []))
         if pj >= 4 and f["goalsFor"] <= 2:
             # Menos goles = mas extremo = mas fuerte. 1 gol gana a 2 goles.
-            out.append((100 - f["goalsFor"], f"EL {C} LLEVA {f['goalsFor']} GOL EN {pj} JORNADAS"
-                        if f["goalsFor"] == 1 else
-                        f"EL {C} LLEVA {f['goalsFor']} GOLES EN {pj} JORNADAS", club))
+            _n = f["goalsFor"]
+            out.append((100 - _n,
+                        f"¿{_n} GOL EN {pj} JORNADAS?" if _n == 1
+                        else f"¿SOLO {_n} GOLES EN {pj} JORNADAS?", club))
         if pos == 20:
-            out.append((85, f"EL {C} ES ULTIMO", club))
+            out.append((85, f"EL {C} ES ÚLTIMO", club))
         elif pos >= 18:
             out.append((80, f"EL {C}, EN PUESTOS DE DESCENSO", club))
 
@@ -103,6 +116,22 @@ def candidatos(jornada, partidos_jornada, tabla, todos_partidos, corto):
         if emp >= 5:
             out.append((70, f"{emp} EMPATES EN UNA JORNADA", None))
 
+    # --- 3.5 PARTIDO ENTRE GRANDES (la conversacion de la jornada)
+    # No hay lista de rivalidades a mano: "grande" es PESO >= 4, que ya
+    # mide audiencia. Un Atleti-Madrid entra; un Getafe-Malaga no.
+    for m in jug:
+        ph, pa = PESO.get(m["home"], 0), PESO.get(m["away"], 0)
+        if min(ph, pa) < 4:
+            continue
+        if m["gh"] == m["ga"]:
+            continue
+        gana = m["home"] if m["gh"] > m["ga"] else m["away"]
+        pierde = m["away"] if m["gh"] > m["ga"] else m["home"]
+        G, P = corto(gana).upper(), corto(pierde).upper()
+        # El perdedor es el gancho: el aficionado dolido comenta, el
+        # satisfecho pasa de largo.
+        out.append((96 + max(ph, pa), f"EL {P} CAE ANTE EL {G}", pierde))
+
     # --- 4. GOLEADA (ultimo recurso: ya se ve en la tabla)
     if jug:
         g = max(jug, key=lambda m: abs(m["gh"] - m["ga"]))
@@ -112,6 +141,10 @@ def candidatos(jornada, partidos_jornada, tabla, todos_partidos, corto):
             out.append((40, f"{corto(gana).upper()} GOLEA "
                         f"{max(g['gh'], g['ga'])}-{min(g['gh'], g['ga'])}", gana))
 
+    # A igualdad de interes del dato, gana el club que mueve mas gente.
+    # Sin esto los titulares son siempre del colista: las malas rachas las
+    # tienen los equipos pequeños, y son los que menos audiencia atraen.
+    out = [(f + PESO.get(c, 0), tx, c) for f, tx, c in out]
     out.sort(key=lambda x: -x[0])
     return out
 

@@ -110,19 +110,19 @@ def _ajustar(texto, fuente, size_max, size_min, ancho_max):
     return _f(fuente, size_min)
 
 
-def _cabecera(d, titulo, subtitulo, titular=None):
-    # Marca arriba: si alguien comparte o graba el Reel, la marca viaja con el.
-    d.text((ANCHO // 2, 78), "AUTOGOAL", font=_f("BebasNeue-Regular.ttf", 52),
-           fill=NEGRO, anchor="mm")
-    d.rectangle([ANCHO // 2 - 90, 108, ANCHO // 2 + 90, 113], fill=ORO)
-
+def _cabecera(d, titulo, subtitulo, titular=None, club=None):
     if titular:
         # Los titulares nuevos (rachas, anomalias) tienen longitud imprevisible.
         # Sin esto, uno largo se sale de los 1080px y se corta en silencio.
         f_tit = _ajustar(titular, "BebasNeue-Regular.ttf", 96, 44, ANCHO - 120)
-        d.text((ANCHO // 2, 190), titular, font=f_tit,
+        d.text((ANCHO // 2, 128), titular, font=f_tit,
                fill=NEGRO, anchor="mm")
-        d.text((ANCHO // 2, 254), f"{titulo} · {subtitulo}",
+        # El club solo va en el subtitulo si el titular NO lo nombra ya:
+        # repetirlo tres centimetros mas abajo es ruido, no jerarquia.
+        _c = _corto(club).upper() if club else ""
+        sub = (f"{_c} · {titulo}" if _c and _c not in titular.upper()
+               else f"{titulo} · {subtitulo}")
+        d.text((ANCHO // 2, 192), sub,
                font=_f("Montserrat-Bold.ttf", 30), fill=ORO, anchor="mm")
     else:
         d.text((ANCHO // 2, 186), titulo, font=_f("BebasNeue-Regular.ttf", 92),
@@ -155,10 +155,10 @@ def _pie(d, progreso):
     d.rectangle([0, ALTO - 10, int(ANCHO * progreso), ALTO], fill=ORO)
 
 
-def _pantalla_resultados(jornada, partidos, progreso, titular="RESULTADOS"):
+def _pantalla_resultados(jornada, partidos, progreso, titular="RESULTADOS", club=None):
     img = Image.new("RGB", (ANCHO, ALTO), FONDO)
     d = ImageDraw.Draw(img)
-    _cabecera(d, f"JORNADA {jornada}", "RESULTADOS", titular=titular)
+    _cabecera(d, f"JORNADA {jornada}", "RESULTADOS", titular=titular, club=club)
 
     f_eq = _f("Montserrat-SemiBold.ttf", 38)
     f_gol = _f("BebasNeue-Regular.ttf", 62)
@@ -377,7 +377,7 @@ def _pantalla_pichichi(pichichis, progreso):
     return img
 
 
-def generar_reel(jornada, partidos, tabla, pichichis, titular=None):
+def generar_reel(jornada, partidos, tabla, pichichis, titular=None, club=None):
     CARPETA_SALIDA.mkdir(exist_ok=True)
     ruta = CARPETA_SALIDA / f"reel_jornada_{jornada}.mp4"
 
@@ -391,7 +391,7 @@ def generar_reel(jornada, partidos, tabla, pichichis, titular=None):
     for i in range(total):
         prog = i / (total - 1)
         if i < por_pantalla:
-            frame = _pantalla_resultados(jornada, partidos, prog, tit)
+            frame = _pantalla_resultados(jornada, partidos, prog, tit, club)
         elif i < por_pantalla * 2:
             frame = _pantalla_clasificacion(tabla, prog)
         else:
