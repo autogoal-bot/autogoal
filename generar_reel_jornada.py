@@ -53,4 +53,4 @@ for f_, t_, c_ in cands[:5]:
 
 tit, club = titulares.elegir(JORNADA, cands)
 print(f"\nELEGIDO: {tit}   [club: {club}]")
-print("Reel:", generar_reel(JORNADA, partidos, tabla, pichichis, titular=tit))
+print("Reel:", generar_reel(JORNADA, partidos, tabla, pichichis, titular=tit, club=club))
