@@ -22,6 +22,10 @@ from equipos import get_equipo
 
 
 ARCHIVO_PUBLICADOS = Path("publicados.json")
+
+# Interruptor del feed (experimento 4 oct 2026). False = solo Story por partido.
+# Para revertir: True, en un dia sin partidos ayer ni hoy (ver main()).
+PUBLICAR_FEED = False
 VENTANA_HORAS = 3
 
 # Hashtags fijos que van en todos los posts
@@ -149,7 +153,7 @@ def procesar_partido(partido, feed_ids, story_ids):
     home = partido["home"]["name"]
     away = partido["away"]["name"]
 
-    falta_feed = partido_id not in feed_ids
+    falta_feed = PUBLICAR_FEED and partido_id not in feed_ids
     falta_story = partido_id not in story_ids
 
     print(f"\n--- Procesando: {home} vs {away} (ID: {partido_id}) ---")
@@ -206,6 +210,7 @@ def main():
     feed_ids, story_ids = cargar_publicados()
     print(f"Feed publicados historicamente: {len(feed_ids)}")
     print(f"Story publicadas historicamente: {len(story_ids)}")
+    print(f"PUBLICAR_FEED = {PUBLICAR_FEED}")
 
     hoy = datetime.now().date()
     ayer = hoy - timedelta(days=1)
@@ -235,7 +240,7 @@ def main():
     # el partido debe seguir pendiente hasta publicarse.
     pendientes = [
         p for p in terminados
-        if p["id"] not in feed_ids or p["id"] not in story_ids
+        if (PUBLICAR_FEED and p["id"] not in feed_ids) or p["id"] not in story_ids
     ]
     print(f"Pendientes de publicar (feed o story): {len(pendientes)}")
 
