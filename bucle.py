@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 
 import main
 
-DURACION_MIN = 27
+DURACION_MIN = 330
 INTERVALO_SEG = 120
 
 

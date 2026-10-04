@@ -2,20 +2,20 @@
 
 on:
   schedule:
-    # Cada 30 min, 24h. Cada ejecucion vive 50 min haciendo polling
-    # interno cada 2 min, asi que hay solape: si GitHub se salta una
-    # tanda, la siguiente recoge lo pendiente.
+    # Cada 30 min, pero GitHub solo dispara 6-7 al dia (medido sept 2026).
+    # Cada ejecucion vive 5h30 con polling cada 2 min y la siguiente
+    # espera en cola, asi que los runs se encadenan.
     - cron: "*/30 * * * *"
   workflow_dispatch:  # Permite ejecutar manualmente desde GitHub
 
 # Permiso para que el workflow pueda escribir (commit/push) en el repo
 # Un solo run a la vez. Sin esto, dos bucles solapados leen el mismo
 # publicados.json antes de que ninguno lo actualice y publican el mismo
-# partido dos veces. cancel-in-progress mata la tanda vieja al arrancar
-# la nueva: cobertura continua, cero duplicados.
+# partido dos veces. La tanda nueva espera a que acabe la vieja en vez
+# de matarla: nunca se corta un bucle a mitad de publicar.
 concurrency:
   group: autogoal-bot
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -44,8 +44,8 @@ jobs:
           echo "INSTAGRAM_ACCOUNT_ID=${{ secrets.INSTAGRAM_ACCOUNT_ID }}" >> .env
           echo "IMGBB_API_KEY=${{ secrets.IMGBB_API_KEY }}" >> .env
 
-      - name: Ejecutar el bot (bucle de 50 min)
-        timeout-minutes: 55
+      - name: Ejecutar el bot (bucle de 5h30)
+        timeout-minutes: 345
         run: python bucle.py
 
       - name: Guardar publicados.json en el repo
